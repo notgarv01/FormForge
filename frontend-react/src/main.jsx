@@ -18,7 +18,7 @@ import {
   Trash2,
   Wrench
 } from 'lucide-react';
-import { FormForgeAPI } from './api.js';
+import { API_BASE_URL, FormForgeAPI } from './api.js';
 import { exportSubmissionsToCSV, exportSubmissionsToJSON } from './exporter.js';
 import './styles.css';
 
@@ -349,7 +349,7 @@ function FormDetails({ user, formId, onBack, showToast }) {
   const [notifyEmail, setNotifyEmail] = useState('');
   const [saving, setSaving] = useState(false);
 
-  const endpoint = form ? `${window.location.origin}/f/${form.id}` : '';
+  const endpoint = form ? `${API_BASE_URL || window.location.origin}/f/${form.id}` : '';
   const snippet = useMemo(() => endpoint ? `<!-- Copy and paste this form inside your static HTML website -->
 <form action="${endpoint}" method="POST">
   <input type="text" name="_honey" style="display:none" tabindex="-1" autocomplete="off">
