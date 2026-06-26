@@ -271,7 +271,14 @@ app.get('/api/forms/:formId/submissions', async (req, res) => {
 
 // Serve React frontend assets
 const frontendPath = path.join(__dirname, '../frontend-react/dist');
-app.use(express.static(frontendPath));
+app.use(express.static(frontendPath, {
+  setHeaders: (res) => {
+    // index.html must never be cached so deploys with new asset hashes are picked up
+    if (res.req.path === '/' || res.req.path.endsWith('.html')) {
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    }
+  }
+}));
 app.get('*', (req, res, next) => {
   if (req.path.startsWith('/api/') || req.path.startsWith('/f/')) {
     return next();
