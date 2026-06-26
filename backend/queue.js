@@ -12,31 +12,24 @@ class NotificationQueue {
     this.jobs = [];
     this.processing = false;
     
-    const isProduction = process.env.NODE_ENV === 'production';
-    this.isProduction = isProduction;
+    // Configurable SMTP Settings
+    const smtpHost = process.env.SMTP_HOST || "sandbox.smtp.mailtrap.io";
+    const smtpPort = parseInt(process.env.SMTP_PORT || "2525");
+    const smtpSecure = process.env.SMTP_SECURE === 'true'; // Set to true for port 465, false for 587 or 2525
+    const smtpUser = process.env.SMTP_USER || process.env.MAILTRAP_USER || "6975f796c4c507";
+    const smtpPass = process.env.SMTP_PASS || process.env.MAILTRAP_PASS || "****7e37";
+    
+    this.fromEmail = process.env.SMTP_FROM || '"FormForge System" <noreply@formforge.com>';
 
-    if (isProduction) {
-      // Production: Resend SMTP Transporter (using API key)
-      this.transporter = nodemailer.createTransport({
-        host: "smtp.resend.com",
-        port: 465,
-        secure: true,
-        auth: {
-          user: "resend",
-          pass: process.env.RESEND_API_KEY
-        }
-      });
-    } else {
-      // Development: Mailtrap SMTP Sandbox
-      this.transporter = nodemailer.createTransport({
-        host: "sandbox.smtp.mailtrap.io",
-        port: 2525,
-        auth: {
-          user: process.env.MAILTRAP_USER,
-          pass: process.env.MAILTRAP_PASS
-        }
-      });
-    }
+    this.transporter = nodemailer.createTransport({
+      host: smtpHost,
+      port: smtpPort,
+      secure: smtpSecure,
+      auth: {
+        user: smtpUser,
+        pass: smtpPass
+      }
+    });
   }
 
   /**
@@ -81,8 +74,7 @@ class NotificationQueue {
       .join('\n');
 
     const mailOptions = {
-      // NOTE: For Resend in production, you must use a verified domain (or onboarding@resend.dev for test runs)
-      from: this.isProduction ? '"FormForge System" <onboarding@resend.dev>' : '"FormForge System" <noreply@formforge.com>',
+      from: this.fromEmail,
       to: recipient,
       subject: `🔥 New Submission Alert on Form: "${form.name}"`,
       html: `
