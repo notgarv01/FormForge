@@ -621,3 +621,69 @@ td em {
     flex-direction: column;
   }
 }
+
+/* ---------- Full-screen loading ---------- */
+.loading-screen {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  background:
+    radial-gradient(circle at 20% 10%, rgba(94, 234, 212, 0.12), transparent 26rem),
+    radial-gradient(circle at 85% 20%, rgba(124, 58, 237, 0.18), transparent 28rem),
+    linear-gradient(135deg, #07080d, #11131c 45%, #0b1020);
+  z-index: 999;
+}
+
+.loading-orb {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, #5eead4, #7c3aed, #5eead4);
+  filter: blur(2px);
+  opacity: 0.85;
+  animation: spin 1.4s linear infinite;
+  box-shadow: 0 0 40px rgba(124, 58, 237, 0.45);
+}
+
+.loading-screen .logo {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: 0.02em;
+}
+
+.loading-label {
+  font-size: 0.9rem;
+  color: var(--text-soft);
+  letter-spacing: 0.04em;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ---------- Confirm dialog (replaces window.confirm) ---------- */
+.confirm-dialog {
+  max-width: 420px;
+  width: 92%;
+}
+
+.confirm-message {
+  color: var(--text-soft);
+  line-height: 1.6;
+  margin-bottom: 22px;
+}
+
+.btn-danger {
+  background: linear-gradient(135deg, #fb7185, #ef4444);
+  color: #fff;
+  box-shadow: 0 4px 15px rgba(239, 68, 68, 0.35);
+}
+
+.btn-danger:hover {
+  box-shadow: 0 6px 20px rgba(239, 68, 68, 0.55);
+}

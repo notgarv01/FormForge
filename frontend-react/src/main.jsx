@@ -60,6 +60,39 @@ function Logo({ label = 'FormForge Console' }) {
   );
 }
 
+function LoadingScreen({ label = 'Loading your endpoints...' }) {
+  return (
+    <div className="loading-screen" role="status" aria-live="polite">
+      <div className="loading-orb" />
+      <Logo />
+      <div className="loading-label">{label}</div>
+    </div>
+  );
+}
+
+function ConfirmDialog({ title, message, confirmLabel = 'Confirm', cancelLabel = 'Cancel', danger = false, onConfirm, onCancel }) {
+  useEffect(() => {
+    function onKey(event) {
+      if (event.key === 'Escape') onCancel();
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onCancel]);
+
+  return (
+    <div className="modal-overlay active" onMouseDown={(event) => event.target === event.currentTarget && onCancel()}>
+      <section className="glass modal-content confirm-dialog" role="dialog" aria-modal="true">
+        <h2>{title}</h2>
+        <p className="confirm-message">{message}</p>
+        <div className="modal-actions">
+          <button className="btn btn-secondary" type="button" onClick={onCancel}>{cancelLabel}</button>
+          <button className={`btn ${danger ? 'btn-danger' : 'btn-primary'}`} type="button" autoFocus onClick={onConfirm}>{confirmLabel}</button>
+        </div>
+      </section>
+    </div>
+  );
+}
+
 function AuthPanel({ onAuth, showToast }) {
   const [mode, setMode] = useState('login');
   const [email, setEmail] = useState('');
@@ -132,6 +165,7 @@ function Dashboard({ user, onLogout, onSelectForm, showToast }) {
   const [submissionCount, setSubmissionCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [createOpen, setCreateOpen] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState(null);
 
   async function refresh() {
     setLoading(true);
@@ -159,7 +193,13 @@ function Dashboard({ user, onLogout, onSelectForm, showToast }) {
 
   async function deleteForm(form, event) {
     event.stopPropagation();
-    if (!window.confirm(`Are you sure you want to delete the form "${form.name}"? This will permanently delete all stored submission logs.`)) return;
+    setPendingDelete(form);
+  }
+
+  async function confirmDelete() {
+    const form = pendingDelete;
+    if (!form) return;
+    setPendingDelete(null);
 
     // Optimistic update — remove card instantly, no reload needed
     const previousForms = forms;
@@ -178,6 +218,11 @@ function Dashboard({ user, onLogout, onSelectForm, showToast }) {
       setSubmissionCount(previousCount);
       showToast('error', error.message);
     }
+  }
+
+  // Full-screen loader covers the dashboard until the first form list arrives
+  if (loading) {
+    return <LoadingScreen label="Loading your endpoints..." />;
   }
 
   return (
@@ -202,9 +247,7 @@ function Dashboard({ user, onLogout, onSelectForm, showToast }) {
       </section>
 
       <section className="forms-grid">
-        {loading ? (
-          <div className="glass empty-state">Loading endpoints...</div>
-        ) : forms.length === 0 ? (
+        {forms.length === 0 ? (
           <div className="glass empty-state">
             <h3>No form endpoints created yet.</h3>
             <p>Create your first secure API URL to start collecting form submissions.</p>
@@ -223,6 +266,18 @@ function Dashboard({ user, onLogout, onSelectForm, showToast }) {
       </section>
 
       {createOpen && <CreateFormModal user={user} onClose={() => setCreateOpen(false)} onCreated={refresh} showToast={showToast} />}
+
+      {pendingDelete && (
+        <ConfirmDialog
+          title="Delete form endpoint?"
+          message={`Are you sure you want to delete "${pendingDelete.name}"? This will permanently delete all stored submission logs and cannot be undone.`}
+          confirmLabel="Delete"
+          cancelLabel="Cancel"
+          danger
+          onConfirm={confirmDelete}
+          onCancel={() => setPendingDelete(null)}
+        />
+      )}
     </main>
   );
 }
