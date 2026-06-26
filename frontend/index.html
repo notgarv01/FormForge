@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FormForge — Headless Backend & Dashboard</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Fira+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- Glassmorphic Background Orbs -->
+  <div class="bg-orbs">
+    <div class="orb orb1"></div>
+    <div class="orb orb2"></div>
+    <div class="orb orb3"></div>
+    <div class="orb orb4"></div>
+  </div>
+
+  <div class="wrap">
+    
+    <!-- 1. AUTHORIZATION SCREEN (Login & Registration) -->
+    <div id="auth-panel" class="auth-panel-container">
+      <div class="glass auth-card">
+        <div class="logo">
+          <div class="logo-icon">⚒</div>
+          <span class="logo-text">FormForge Auth</span>
+        </div>
+        <h2 id="auth-title">Welcome Back</h2>
+        <p class="subtitle" id="auth-subtitle">Login to configure form endpoints and read submissions.</p>
+
+        <form id="auth-form" class="auth-form-fields">
+          <div class="form-field">
+            <label for="auth-email" class="form-label">Email Address</label>
+            <input type="email" id="auth-email" class="input-glass" placeholder="you@example.com" required>
+          </div>
+          <div class="form-field">
+            <label for="auth-password" class="form-label">Password</label>
+            <input type="password" id="auth-password" class="input-glass" placeholder="••••••••" required>
+          </div>
+          <button type="submit" class="btn btn-primary" id="btn-auth-submit">Login</button>
+        </form>
+
+        <div class="auth-switch">
+          <span id="auth-switch-text">Don't have an account?</span>
+          <button id="btn-auth-switch" class="btn-link">Sign Up</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. DEVELOPER ADMIN DASHBOARD -->
+    <div id="dashboard-panel" class="dashboard-panel-container hidden">
+      <!-- Dashboard Top Header Bar -->
+      <header class="logo-row">
+        <div class="logo">
+          <div class="logo-icon">⚒</div>
+          <span class="logo-text">FormForge Console</span>
+        </div>
+        <div class="user-session-wrap">
+          <span class="user-email-text" id="user-email-display">user@example.com</span>
+          <button id="btn-logout" class="btn btn-secondary btn-sm-logout">Logout</button>
+        </div>
+      </header>
+
+      <!-- Stat Cards -->
+      <div class="metrics-grid">
+        <div class="glass metric-card">
+          <div class="metric-label">Active Forms</div>
+          <div class="metric-value" id="metric-forms-count">0</div>
+          <div class="metric-sub">Connected endpoints</div>
+        </div>
+        <div class="glass metric-card">
+          <div class="metric-label">Total Submissions</div>
+          <div class="metric-value" id="metric-submissions-count">0</div>
+          <div class="metric-sub">Stored in MongoDB mock</div>
+        </div>
+        <div class="glass metric-card">
+          <div class="metric-label">Spam Blocked</div>
+          <div class="metric-value" id="metric-spam-count">0</div>
+          <div class="metric-sub">Honeypot protection triggers</div>
+        </div>
+      </div>
+
+      <!-- Action Row: Create form -->
+      <div class="dashboard-controls-row">
+        <h2>My Form Endpoints</h2>
+        <button id="btn-open-create-modal" class="btn btn-primary">+ Create New Form</button>
+      </div>
+
+      <!-- Forms Grid List -->
+      <div class="forms-grid" id="forms-list-container">
+        <!-- Rendered dynamically -->
+      </div>
+    </div>
+
+    <!-- 3. FORM SPECIFIC CONTROL & SUBMISSIONS VIEW -->
+    <div id="form-details-panel" class="details-panel-container hidden">
+      <div class="details-header-row">
+        <button id="btn-back-to-dashboard" class="btn btn-secondary">&larr; Back to Console</button>
+        <h2 id="details-form-name">Form Details</h2>
+      </div>
+
+      <div class="details-workspace-grid">
+        
+        <!-- Left Side: Integration Code & Actions -->
+        <div class="left-panel">
+          <!-- Unique Endpoint Action URL -->
+          <div class="glass card-endpoint">
+            <div class="section-title">Unique Backend Endpoint</div>
+            <div class="endpoint-input-row">
+              <input type="text" id="endpoint-url-input" class="input-glass code-url-text" readonly>
+              <button id="btn-copy-endpoint" class="btn btn-primary">Copy URL</button>
+            </div>
+            <p class="field-hint-text">Paste this secure URL inside your static form's action attribute.</p>
+          </div>
+
+          <!-- Boilerplate Code Generator Card -->
+          <div class="glass card-integration">
+            <div class="section-title">HTML Integration Snippet</div>
+            <p class="field-hint-text">Copy this HTML template into your index.html. Features a hidden Honeypot spam filter field.</p>
+            <div class="code-wrapper">
+              <pre><code id="integration-code-block" class="code-block-payload"></code></pre>
+              <button id="btn-copy-code" class="btn btn-secondary btn-sm-copy">Copy Snippet</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Side: Settings Override -->
+        <div class="right-panel">
+          <div class="glass card-settings">
+            <div class="section-title">Endpoint Configuration</div>
+            
+            <form id="settings-form" class="settings-form-fields">
+              <div class="form-field">
+                <label for="settings-redirect" class="form-label">Custom Redirect URL (Optional)</label>
+                <input type="url" id="settings-redirect" class="input-glass" placeholder="https://yourwebsite.com/thank-you">
+                <span class="field-hint-text">Redirects user to this landing page upon form submission.</span>
+              </div>
+              <div class="form-field">
+                <label for="settings-notify" class="form-label">Forward Email Alerts (Optional)</label>
+                <input type="email" id="settings-notify" class="input-glass" placeholder="alerts@yourdomain.com">
+                <span class="field-hint-text">Receives complete JSON payloads inside developer inbox.</span>
+              </div>
+            </form>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Bottom Side: Submissions list datatable -->
+      <div class="glass card-submissions" style="margin-top: 28px;">
+        <div class="submissions-header-row">
+          <div class="submissions-header-title">
+            <div class="section-title">Submissions logs</div>
+            <h3 id="submissions-count-title">No submissions collected yet.</h3>
+          </div>
+          <div class="submissions-actions-wrap hidden" id="submissions-actions-container">
+            <button id="btn-export-csv" class="btn btn-secondary btn-sm-export">Export CSV</button>
+            <button id="btn-export-json" class="btn btn-secondary btn-sm-export">Export JSON</button>
+          </div>
+        </div>
+
+        <div class="table-scroll-container">
+          <table class="submissions-table" id="submissions-data-table">
+            <thead id="submissions-table-head">
+              <!-- Rendered dynamically -->
+            </thead>
+            <tbody id="submissions-table-body">
+              <!-- Rendered dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Create Form Modal dialog -->
+  <div id="create-form-modal" class="modal-overlay">
+    <div class="glass modal-content">
+      <h2>Create New Form</h2>
+      <p>Configure a secure unique endpoint identifier for your static web project.</p>
+      
+      <form id="create-form-element" style="width: 100%; text-align: left; display: flex; flex-direction: column; gap: 16px;">
+        <div class="form-field">
+          <label for="new-form-name" class="form-label">Form Name</label>
+          <input type="text" id="new-form-name" class="input-glass" placeholder="e.g. Portfolio Contact Form" required>
+        </div>
+        <div class="form-field">
+          <label for="new-form-redirect" class="form-label">Custom Thank-you Page (Optional)</label>
+          <input type="url" id="new-form-redirect" class="input-glass" placeholder="e.g. https://domain.com/thank-you">
+        </div>
+        <div class="form-field">
+          <label for="new-form-notify" class="form-label">Alert Notification Email (Optional)</label>
+          <input type="email" id="new-form-notify" class="input-glass" placeholder="e.g. alert@domain.com">
+        </div>
+        
+        <div class="modal-actions-row" style="display: flex; gap: 12px; margin-top: 10px; justify-content: flex-end;">
+          <button type="button" class="btn btn-secondary" id="btn-close-create-modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Create Endpoint</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Notification System container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

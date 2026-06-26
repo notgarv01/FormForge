@@ -1,0 +1,6 @@
+node_modules/
+backend/db.json
+backend/mail.log
+.gemini/
+.DS_Store
+*.log

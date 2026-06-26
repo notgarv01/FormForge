@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: var(--font-sans, 'Inter', sans-serif);
+    background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+    min-height: 100vh;
+    padding: 0;
+  }
+  .bg-orbs {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none;
+  }
+  .orb {
+    position: absolute; border-radius: 50%; filter: blur(80px); opacity: 0.35;
+  }
+  .orb1 { width: 400px; height: 400px; background: #7b5ea7; top: -100px; left: -80px; }
+  .orb2 { width: 350px; height: 350px; background: #3a86ff; top: 30%; right: -60px; }
+  .orb3 { width: 300px; height: 300px; background: #ff6b6b; bottom: 0; left: 30%; }
+  .orb4 { width: 250px; height: 250px; background: #43c6ac; bottom: 20%; left: 5%; }
+
+  .wrap { position: relative; z-index: 1; max-width: 860px; margin: 0 auto; padding: 32px 20px 48px; }
+
+  .header { text-align: center; margin-bottom: 36px; }
+  .logo {
+    display: inline-flex; align-items: center; gap: 10px;
+    background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.15);
+    backdrop-filter: blur(12px); border-radius: 50px; padding: 8px 22px 8px 14px;
+    margin-bottom: 20px;
+  }
+  .logo-icon {
+    width: 28px; height: 28px; border-radius: 8px;
+    background: linear-gradient(135deg, #7b5ea7, #3a86ff);
+    display: flex; align-items: center; justify-content: center; font-size: 14px;
+  }
+  .logo-text { color: rgba(255,255,255,0.9); font-size: 14px; font-weight: 500; letter-spacing: 0.02em; }
+  h1 { font-size: 38px; font-weight: 700; color: #fff; letter-spacing: -0.02em; line-height: 1.15; }
+  h1 span { background: linear-gradient(90deg, #a78bfa, #60a5fa, #34d399); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .subtitle { color: rgba(255,255,255,0.5); font-size: 15px; margin-top: 10px; }
+
+  .tabs {
+    display: flex; gap: 6px; margin-bottom: 24px;
+    background: rgba(255,255,255,0.05); backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; padding: 5px;
+  }
+  .tab {
+    flex: 1; padding: 9px 12px; border-radius: 10px; border: none; cursor: pointer;
+    font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.5);
+    background: transparent; transition: all 0.2s; letter-spacing: 0.01em;
+  }
+  .tab.active {
+    background: rgba(255,255,255,0.12); color: #fff;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.15);
+  }
+  .tab:hover:not(.active) { color: rgba(255,255,255,0.75); background: rgba(255,255,255,0.06); }
+
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  .glass {
+    background: rgba(255,255,255,0.07); backdrop-filter: blur(16px);
+    border: 1px solid rgba(255,255,255,0.13); border-radius: 18px;
+    padding: 28px; margin-bottom: 18px;
+  }
+  .glass-sm {
+    background: rgba(255,255,255,0.05); backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 18px;
+  }
+
+  .section-title {
+    font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase;
+    color: rgba(255,255,255,0.35); margin-bottom: 14px;
+  }
+  .doc-title { font-size: 22px; font-weight: 600; color: #fff; margin-bottom: 6px; }
+  .doc-body { font-size: 14px; color: rgba(255,255,255,0.6); line-height: 1.75; }
+
+  .meta-row {
+    display: flex; flex-wrap: wrap; gap: 8px; margin: 18px 0;
+  }
+  .badge {
+    font-size: 11px; font-weight: 500; padding: 4px 10px; border-radius: 50px;
+    letter-spacing: 0.03em;
+  }
+  .badge-purple { background: rgba(167,139,250,0.18); color: #c4b5fd; border: 1px solid rgba(167,139,250,0.3); }
+  .badge-blue { background: rgba(96,165,250,0.18); color: #93c5fd; border: 1px solid rgba(96,165,250,0.3); }
+  .badge-green { background: rgba(52,211,153,0.18); color: #6ee7b7; border: 1px solid rgba(52,211,153,0.3); }
+  .badge-amber { background: rgba(251,191,36,0.18); color: #fcd34d; border: 1px solid rgba(251,191,36,0.3); }
+  .badge-red { background: rgba(248,113,113,0.18); color: #fca5a5; border: 1px solid rgba(248,113,113,0.3); }
+  .badge-gray { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.55); border: 1px solid rgba(255,255,255,0.12); }
+
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+
+  .feature-card {
+    background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 14px; padding: 18px;
+  }
+  .feature-icon { font-size: 22px; margin-bottom: 10px; }
+  .feature-title { font-size: 14px; font-weight: 600; color: rgba(255,255,255,0.9); margin-bottom: 5px; }
+  .feature-body { font-size: 12.5px; color: rgba(255,255,255,0.5); line-height: 1.65; }
+
+  .h2 { font-size: 17px; font-weight: 600; color: #fff; margin: 24px 0 10px; }
+  .h3 { font-size: 14px; font-weight: 600; color: rgba(255,255,255,0.8); margin: 16px 0 8px; }
+  p { font-size: 14px; color: rgba(255,255,255,0.6); line-height: 1.75; margin-bottom: 12px; }
+
+  .priority-row {
+    display: flex; align-items: flex-start; gap: 12px; padding: 11px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  .priority-row:last-child { border-bottom: none; }
+  .pri-label { min-width: 58px; }
+  .pri-feature { font-size: 13.5px; color: rgba(255,255,255,0.85); font-weight: 500; flex: 1; }
+  .pri-note { font-size: 12px; color: rgba(255,255,255,0.45); margin-top: 2px; }
+
+  .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .metric-card {
+    background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px; padding: 16px;
+  }
+  .metric-label { font-size: 11px; color: rgba(255,255,255,0.4); letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 6px; }
+  .metric-value { font-size: 24px; font-weight: 700; color: #fff; }
+  .metric-sub { font-size: 11.5px; color: rgba(255,255,255,0.4); margin-top: 3px; }
+
+  .timeline { position: relative; padding-left: 26px; }
+  .timeline::before { content: ''; position: absolute; left: 7px; top: 6px; bottom: 6px; width: 1px; background: rgba(255,255,255,0.12); }
+  .tl-item { position: relative; margin-bottom: 20px; }
+  .tl-dot {
+    position: absolute; left: -22px; top: 4px; width: 10px; height: 10px;
+    border-radius: 50%; border: 2px solid rgba(255,255,255,0.3);
+    background: rgba(255,255,255,0.12);
+  }
+  .tl-dot.done { background: #34d399; border-color: #34d399; }
+  .tl-dot.active-dot { background: #60a5fa; border-color: #60a5fa; box-shadow: 0 0 8px rgba(96,165,250,0.6); }
+  .tl-phase { font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.5); letter-spacing: 0.05em; text-transform: uppercase; }
+  .tl-title { font-size: 14px; font-weight: 500; color: rgba(255,255,255,0.85); margin: 2px 0; }
+  .tl-body { font-size: 12.5px; color: rgba(255,255,255,0.45); line-height: 1.6; }
+
+  .code-block {
+    background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 10px; padding: 14px 16px; font-family: var(--font-mono, 'Fira Mono', monospace);
+    font-size: 12px; color: #a5f3fc; line-height: 1.7; overflow-x: auto; margin: 10px 0;
+  }
+  .code-key { color: #c084fc; }
+  .code-str { color: #86efac; }
+  .code-num { color: #fbbf24; }
+  .code-com { color: rgba(255,255,255,0.3); }
+
+  .module-card {
+    background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.09);
+    border-radius: 12px; padding: 14px 16px; margin-bottom: 10px;
+    display: flex; align-items: flex-start; gap: 14px;
+  }
+  .module-pkg {
+    font-size: 11px; font-family: monospace; color: #a78bfa;
+    background: rgba(167,139,250,0.12); padding: 3px 8px; border-radius: 6px;
+    white-space: nowrap; margin-top: 2px;
+  }
+  .module-name { font-size: 14px; font-weight: 600; color: rgba(255,255,255,0.9); margin-bottom: 3px; }
+  .module-desc { font-size: 12.5px; color: rgba(255,255,255,0.5); line-height: 1.6; }
+
+  .flow-step {
+    display: flex; align-items: center; gap: 0; margin-bottom: 12px;
+  }
+  .step-box {
+    flex: 1; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 10px; padding: 12px 14px; text-align: center;
+  }
+  .step-num { font-size: 11px; color: rgba(255,255,255,0.35); margin-bottom: 4px; }
+  .step-label { font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.85); }
+  .step-arrow { color: rgba(255,255,255,0.25); font-size: 16px; padding: 0 6px; }
+
+  .stack-row {
+    display: grid; grid-template-columns: 130px 90px 1fr 80px; gap: 12px;
+    align-items: center; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.06);
+    font-size: 13px;
+  }
+  .stack-row:last-child { border-bottom: none; }
+  .stack-tool { font-weight: 600; color: rgba(255,255,255,0.9); }
+  .stack-ver { font-family: monospace; font-size: 12px; color: rgba(255,255,255,0.4); }
+  .stack-desc { color: rgba(255,255,255,0.5); font-size: 12.5px; }
+  .stack-head {
+    display: grid; grid-template-columns: 130px 90px 1fr 80px; gap: 12px;
+    font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase;
+    color: rgba(255,255,255,0.3); padding-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.1);
+  }
+  .status-confirmed { color: #34d399; font-size: 11px; font-weight: 600; }
+  .status-eval { color: #fbbf24; font-size: 11px; font-weight: 600; }
+
+  .risk-row { padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.06); }
+  .risk-row:last-child { border-bottom: none; }
+  .risk-title { font-size: 13.5px; font-weight: 500; color: rgba(255,255,255,0.85); margin-bottom: 4px; }
+  .risk-mitigation { font-size: 12px; color: rgba(255,255,255,0.45); line-height: 1.6; }
+
+  .adr-card {
+    background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px; padding: 16px; margin-bottom: 10px;
+  }
+  .adr-num { font-size: 11px; color: rgba(255,255,255,0.3); margin-bottom: 4px; }
+  .adr-decision { font-size: 14px; font-weight: 600; color: rgba(255,255,255,0.9); margin-bottom: 6px; }
+  .adr-alts { font-size: 12px; color: rgba(255,255,255,0.4); margin-bottom: 6px; }
+  .adr-outcome { font-size: 12.5px; color: rgba(255,255,255,0.6); line-height: 1.6; }
+
+  .divider { height: 1px; background: rgba(255,255,255,0.08); margin: 20px 0; }
+
+  @media (max-width: 600px) {
+    .grid2, .grid3 { grid-template-columns: 1fr; }
+    .metric-grid { grid-template-columns: 1fr; }
+    .stack-row, .stack-head { grid-template-columns: 1fr 60px; }
+    .stack-ver, .stack-desc { display: none; }
+    h1 { font-size: 28px; }
+  }
+</style>
+
+<div class="bg-orbs">
+  <div class="orb orb1"></div>
+  <div class="orb orb2"></div>
+  <div class="orb orb3"></div>
+  <div class="orb orb4"></div>
+</div>
+
+<div class="wrap">
+  <h2 class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)">FormForge documentation: PRD, Design Doc, and Tech Stack</h2>
+
+  <div class="header">
+    <div class="logo">
+      <div class="logo-icon">⚒</div>
+      <span class="logo-text">FormForge</span>
+    </div>
+    <h1>Project <span>Documentation</span></h1>
+    <p class="subtitle">PRD · Design Doc · Tech Stack — v1.0 · June 2026</p>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="show('prd',this)">📋 PRD</button>
+    <button class="tab" onclick="show('design',this)">🏗 Design Doc</button>
+    <button class="tab" onclick="show('tech',this)">⚙️ Tech Stack</button>
+  </div>
+
+  <!-- ======== PRD ======== -->
+  <div id="prd" class="panel active">
+
+    <div class="glass">
+      <div class="section-title">Product Requirements Document</div>
+      <div class="doc-title">FormForge — Dynamic Schema-Driven Form Platform</div>
+      <p class="doc-body">FormForge eliminates the repetitive work of building HTML forms, validation logic, and state management. You define a JSON schema — FormForge generates a fully functional, validated, and beautiful form automatically.</p>
+      <div class="meta-row">
+        <span class="badge badge-purple">v1.0</span>
+        <span class="badge badge-amber">Draft</span>
+        <span class="badge badge-gray">June 2026</span>
+        <span class="badge badge-blue">Product + Engineering</span>
+      </div>
+    </div>
+
+    <div class="glass">
+      <div class="section-title">Problem statement</div>
+      <div class="grid2">
+        <div class="feature-card">
+          <div class="feature-icon">🔁</div>
+          <div class="feature-title">Repetitive markup</div>
+          <div class="feature-body">Developers hand-craft the same form patterns over and over — inputs, labels, error states, layout — for every new feature.</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🔗</div>
+          <div class="feature-title">Cascading changes</div>
+          <div class="feature-body">Schema updates require coordinated edits across the frontend form, validation logic, and state layer — multiplying bug risk.</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🧩</div>
+          <div class="feature-title">No unified tool</div>
+          <div class="feature-body">No single library covers schema parsing, conditional logic, validation, and clean payload output together.</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">⚙️</div>
+          <div class="feature-title">Engineering bottleneck</div>
+          <div class="feature-body">Minor form changes require engineering time even when the intent is purely data-model driven.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="glass">
+      <div class="section-title">Success metrics</div>
+      <div class="metric-grid">
+        <div class="metric-card">
+          <div class="metric-label">Dev time reduction</div>
+          <div class="metric-value">&gt;60%</div>
+          <div class="metric-sub">vs. manual implementation</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Time to first form</div>
+          <div class="metric-value">&lt;10 min</div>
+          <div class="metric-sub">from install to working form</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Schema error rate</div>
+          <div class="metric-value">&lt;2%</div>
+          <div class="metric-sub">in production environments</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Developer NPS</div>
+          <div class="metric-value">&gt;50</div>
+          <div class="metric-sub">post-release survey</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="glass">
+      <div class="section-title">Prioritized features</div>
+
+      <div class="h3" style="margin-top:0">High priority</div>
+      <div class="priority-row">
+        <span class="badge badge-red pri-label">High</span>
+        <div><div class="pri-feature">Schema-driven generation</div><div class="pri-note">Core value proposition — required for all other features</div></div>
+      </div>
+      <div class="priority-row">
+        <span class="badge badge-red pri-label">High</span>
+        <div><div class="pri-feature">Built-in validation engine</div><div class="pri-note">Eliminates manual validation boilerplate</div></div>
+      </div>
+      <div class="priority-row">
+        <span class="badge badge-red pri-label">High</span>
+        <div><div class="pri-feature">Dynamic conditional logic</div><div class="pri-note">Enables complex, real-world form use cases</div></div>
+      </div>
+      <div class="priority-row">
+        <span class="badge badge-red pri-label">High</span>
+        <div><div class="pri-feature">State management and payload output</div><div class="pri-note">Produces clean, submission-ready data</div></div>
+      </div>
+      <div class="priority-row">
+        <span class="badge badge-red pri-label">High</span>
+        <div><div class="pri-feature">React adapter</div><div class="pri-note">Primary target framework for V1</div></div>
+      </div>
+
+      <div class="h3">Medium priority</div>
+      <div class="priority-row">
+        <span class="badge badge-amber pri-label">Medium</span>
+        <div><div class="pri-feature">Extensible custom UI components</div><div class="pri-note">Allows teams to match their own design system</div></div>
+      </div>
+      <div class="priority-row">
+        <span class="badge badge-amber pri-label">Medium</span>
+        <div><div class="pri-feature">Node.js backend validation package</div><div class="pri-note">Unified validation across the full stack</div></div>
+      </div>
+      <div class="priority-row">
+        <span class="badge badge-amber pri-label">Medium</span>
+        <div><div class="pri-feature">File and media upload fields</div><div class="pri-note">Required for media-heavy admin panels</div></div>
+      </div>
+      <div class="priority-row">
+        <span class="badge badge-amber pri-label">Medium</span>
+        <div><div class="pri-feature">Multi-step wizard forms</div><div class="pri-note">Common enterprise pattern</div></div>
+      </div>
+
+      <div class="h3">Low priority / V2</div>
+      <div class="priority-row">
+        <span class="badge badge-gray pri-label">Low</span>
+        <div><div class="pri-feature">No-code schema editor GUI</div><div class="pri-note">Reduces engineering dependency for form changes</div></div>
+      </div>
+      <div class="priority-row">
+        <span class="badge badge-gray pri-label">Low</span>
+        <div><div class="pri-feature">Form analytics and A/B testing</div><div class="pri-note">Future roadmap consideration</div></div>
+      </div>
+    </div>
+
+    <div class="glass">
+      <div class="section-title">Risks and mitigations</div>
+      <div class="risk-row">
+        <div class="risk-title"><span class="badge badge-red" style="margin-right:8px">High</span>Competitor saturation</div>
+        <div class="risk-mitigation">react-hook-form, Formik, and Zod are all established. Mitigation: differentiate on schema-first DX and conditional logic depth — no competitor owns that combination.</div>
+      </div>
+      <div class="risk-row">
+        <div class="risk-title"><span class="badge badge-amber" style="margin-right:8px">Medium</span>Schema complexity limits adoption</div>
+        <div class="risk-mitigation">Provide a schema linter, copious examples, and error messages that cite the offending field and suggest a fix.</div>
+      </div>
+      <div class="risk-row">
+        <div class="risk-title"><span class="badge badge-amber" style="margin-right:8px">Medium</span>Design system integration friction</div>
+        <div class="risk-mitigation">Expose a full theming API via CSS custom properties; publish adapter packages for Radix, shadcn/ui, and Chakra.</div>
+      </div>
+      <div class="risk-row">
+        <div class="risk-title"><span class="badge badge-green" style="margin-right:8px">Low</span>Performance on very large forms</div>
+        <div class="risk-mitigation">Virtualize field rendering beyond 100 fields; lazy-load complex field types; profile at 500 fields as a hard limit target.</div>
+      </div>
+    </div>
+
+    <div class="glass">
+      <div class="section-title">Roadmap</div>
+      <div class="timeline">
+        <div class="tl-item">
+          <div class="tl-dot done"></div>
+          <div class="tl-phase">Phase 1 — Weeks 1–4</div>
+          <div class="tl-title">Core engine</div>
+          <div class="tl-body">Schema parser, state manager, basic field types: text, select, checkbox, radio, textarea</div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-dot active-dot"></div>
+          <div class="tl-phase">Phase 2 — Weeks 5–8</div>
+          <div class="tl-title">Validation and conditions</div>
+          <div class="tl-body">Built-in validation rules, conditional visibility, inline error display</div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-dot"></div>
+          <div class="tl-phase">Phase 3 — Weeks 9–12</div>
+          <div class="tl-title">React integration</div>
+          <div class="tl-body">React component API, hooks, TypeScript types, Storybook docs</div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-dot"></div>
+          <div class="tl-phase">Phase 4 — Weeks 13–16</div>
+          <div class="tl-title">Extensibility layer</div>
+          <div class="tl-body">Custom field plugin API, theming system, Node.js backend validation package</div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-dot"></div>
+          <div class="tl-phase">Phase 5 — Weeks 17–20</div>
+          <div class="tl-title">Beta and hardening</div>
+          <div class="tl-body">Performance profiling, accessibility audit (WCAG 2.1 AA), security review, developer preview</div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-dot"></div>
+          <div class="tl-phase">GA — Week 24</div>
+          <div class="tl-title">General availability</div>
+          <div class="tl-body">Full docs site, migration guides, and public npm release under @formforge scope</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ======== DESIGN DOC ======== -->
+  <div id="design" class="panel">
+
+    <div class="glass">
+      <div class="section-title">Design Document</div>
+      <div class="doc-title">Architecture, core flows and system design</div>
+      <p class="doc-body">FormForge is built around one principle: the schema is the single source of truth for a form's structure, behavior, validation, and output. Every subsystem derives its behavior from that schema at runtime.</p>
+      <div class="meta-row">
+        <span class="badge badge-purple">v1.0</span>
+        <span class="badge badge-amber">In review</span>
+        <span class="badge badge-gray">Engineering · internal</span>
+      </div>
+    </div>
+
+    <div class="glass">
+      <div class="section-title">System modules</div>
+
+      <div class="module-card">
+        <div>
+          <div class="module-pkg">@formforge/parser</div>
+        </div>
+        <div>
+          <div class="module-name">Schema Parser</div>
+          <div class="module-desc">Validates, normalizes, and indexes the input schema. Catches schema-level errors before any rendering occurs. The first stage in the pipeline — nothing proceeds with an invalid schema.</div>
+        </div>
+      </div>
+      <div class="module-card">
+        <div>
+          <div class="module-pkg">@formforge/state</div>
+        </div>
+        <div>
+          <div class="module-name">State Manager</div>
+          <div class="module-desc">Centralizes all field values and dirty/pristine tracking. The single source of truth at runtime. All mutations go through a single dispatcher — no hidden state.</div>
+        </div>
+      </div>
+      <div class="module-card">
+        <div>
+          <div class="module-pkg">@formforge/engine</div>
+        </div>
+        <div>
+          <div class="module-name">Execution Engine</div>
+          <div class="module-desc">Evaluates conditional logic and triggers validation on every state change. Coordinates all other modules. The brain of the system.</div>
+        </div>
+      </div>
+      <div class="module-card">
+        <div>
+          <div class="module-pkg">@formforge/react</div>
+        </div>
+        <div>
+          <div class="module-name">Renderer (React)</div>
+          <div class="module-desc">Consumes engine output and renders the appropriate field components. Framework-specific adapter — the core engine is framework-agnostic.</div>
+        </div>
+      </div>
+      <div class="module-card">
+        <div>
+          <div class="module-pkg">@formforge/serializer</div>
+        </div>
+        <div>
+          <div class="module-name">Payload Serializer</div>
+          <div class="module-desc">Transforms internal state into a clean submission-ready object. Hidden and conditionally-invisible fields are stripped from the output automatically.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="glass">
+      <div class="section-title">Data flow</div>
+      <div style="display:flex;align-items:center;gap:0;margin-bottom:14px;flex-wrap:wrap;gap:6px">
+        <div class="step-box" style="flex:none;padding:10px 14px">
+          <div class="step-num">01</div>
+          <div class="step-label">Schema in</div>
+        </div>
+        <div class="step-arrow">→</div>
+        <div class="step-box" style="flex:none;padding:10px 14px">
+          <div class="step-num">02</div>
+          <div class="step-label">Parse</div>
+        </div>
+        <div class="step-arrow">→</div>
+        <div class="step-box" style="flex:none;padding:10px 14px">
+          <div class="step-num">03</div>
+          <div class="step-label">Init state</div>
+        </div>
+        <div class="step-arrow">→</div>
+        <div class="step-box" style="flex:none;padding:10px 14px">
+          <div class="step-num">04</div>
+          <div class="step-label">Render</div>
+        </div>
+        <div class="step-arrow">→</div>
+        <div class="step-box" style="flex:none;padding:10px 14px">
+          <div class="step-num">05</div>
+          <div class="step-label">onChange</div>
+        </div>
+        <div class="step-arrow">→</div>
+        <div class="step-box" style="flex:none;padding:10px 14px">
+          <div class="step-num">06</div>
+          <div class="step-label">Engine eval</div>
+        </div>
+        <div class="step-arrow">→</div>
+        <div class="step-box" style="flex:none;padding:10px 14px">
+          <div class="step-num">07</div>
+          <div class="step-label">Serialize</div>
+        </div>
+      </div>
+      <p style="font-size:13px;margin-bottom:0">User interaction triggers <code style="background:rgba(255,255,255,0.08);padding:1px 6px;border-radius:4px;font-size:12px;color:#a5f3fc">onChange(fieldId, value)</code> → the engine updates state, re-evaluates all conditions referencing the changed field, runs validation, and the renderer reflects the new state. Only affected fields re-render.</p>
+    </div>
+
+    <div class="glass">
+      <div class="section-title">Schema shape</div>
+      <div class="code-block"><span class="code-com">// formforge.schema.js</span>
+<span class="code-key">const</span> schema = {
+  <span class="code-key">fields</span>: [
+    {
+      <span class="code-key">id</span>: <span class="code-str">"email"</span>,
+      <span class="code-key">type</span>: <span class="code-str">"email"</span>,
+      <span class="code-key">label</span>: <span class="code-str">"Email address"</span>,
+      <span class="code-key">required</span>: <span class="code-num">true</span>,
+      <span class="code-key">validation</span>: [
+        { <span class="code-key">rule</span>: <span class="code-str">"format"</span>, <span class="code-key">value</span>: <span class="code-str">"email"</span> }
+      ],
+      <span class="code-key">conditions</span>: [
+        { <span class="code-key">when</span>: <span class="code-str">"accountType"</span>, <span class="code-key">is</span>: <span class="code-str">"business"</span>, <span class="code-key">show</span>: <span class="code-num">true</span> }
+      ]
+    }
+  ],
+  <span class="code-key">options</span>: {
+    <span class="code-key">submitLabel</span>: <span class="code-str">"Submit"</span>,
+    <span class="code-key">validateOnBlur</span>: <span class="code-num">true</span>
+  }
+};</div>
+    </div>
+
+    <div class="glass">
+      <div class="section-title">Conditional logic</div>
+      <p>Conditions are evaluated by the execution engine on every state change. They can control visibility, required status, or disabled state.</p>
+      <div class="code-block"><span class="code-com">// Compound condition — AND logic</span>
+<span class="code-key">conditions</span>: [
+  {
+    <span class="code-key">logic</span>: <span class="code-str">"AND"</span>,
+    <span class="code-key">rules</span>: [
+      { <span class="code-key">when</span>: <span class="code-str">"plan"</span>, <span class="code-key">operator</span>: <span class="code-str">"equals"</span>, <span class="code-key">value</span>: <span class="code-str">"enterprise"</span> },
+      { <span class="code-key">when</span>: <span class="code-str">"seats"</span>, <span class="code-key">operator</span>: <span class="code-str">"greaterThan"</span>, <span class="code-key">value</span>: <span class="code-num">10</span> }
+    ],
+    <span class="code-key">effect</span>: <span class="code-str">"show"</span>
+  }
+]</div>
+      <div class="grid2" style="margin-top:14px">
+        <div class="glass-sm">
+          <div class="feature-title" style="margin-bottom:8px">Operators supported</div>
+          <div style="font-size:12.5px;color:rgba(255,255,255,0.5);line-height:2">
+            equals · notEquals · contains<br>greaterThan · lessThan · isEmpty<br>isNotEmpty · matches (regex)
+          </div>
+        </div>
+        <div class="glass-sm">
+          <div class="feature-title" style="margin-bottom:8px">Effects supported</div>
+          <div style="font-size:12.5px;color:rgba(255,255,255,0.5);line-height:2">
+            show · hide<br>enable · disable<br>require · unrequire
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="glass">
+      <div class="section-title">Validation system</div>
+      <div class="grid2">
+        <div>
+          <div class="h3" style="margin-top:0">Built-in rules</div>
+          <div class="priority-row" style="padding:8px 0">
+            <code style="font-size:11.5px;color:#a5f3fc;background:rgba(165,243,252,0.08);padding:2px 7px;border-radius:5px">required</code>
+            <span style="font-size:12.5px;color:rgba(255,255,255,0.5)">Non-empty value</span>
+          </div>
+          <div class="priority-row" style="padding:8px 0">
+            <code style="font-size:11.5px;color:#a5f3fc;background:rgba(165,243,252,0.08);padding:2px 7px;border-radius:5px">minLength</code>
+            <span style="font-size:12.5px;color:rgba(255,255,255,0.5)">Min string length</span>
+          </div>
+          <div class="priority-row" style="padding:8px 0">
+            <code style="font-size:11.5px;color:#a5f3fc;background:rgba(165,243,252,0.08);padding:2px 7px;border-radius:5px">format</code>
+            <span style="font-size:12.5px;color:rgba(255,255,255,0.5)">email · url · uuid · phone</span>
+          </div>
+          <div class="priority-row" style="padding:8px 0">
+            <code style="font-size:11.5px;color:#a5f3fc;background:rgba(165,243,252,0.08);padding:2px 7px;border-radius:5px">pattern</code>
+            <span style="font-size:12.5px;color:rgba(255,255,255,0.5)">RegExp match</span>
+          </div>
+          <div class="priority-row" style="padding:8px 0">
+            <code style="font-size:11.5px;color:#a5f3fc;background:rgba(165,243,252,0.08);padding:2px 7px;border-radius:5px">custom</code>
+            <span style="font-size:12.5px;color:rgba(255,255,255,0.5)">Sync or async function</span>
+          </div>
+        </div>
+        <div>
+          <div class="h3" style="margin-top:0">Trigger points</div>
+          <div class="glass-sm" style="margin-bottom:8px">
+            <div style="font-size:13px;font-weight:600;color:rgba(255,255,255,0.85);margin-bottom:3px">onBlur <span class="badge badge-green" style="margin-left:6px">default</span></div>
+            <div style="font-size:12px;color:rgba(255,255,255,0.45)">Validates when focus leaves a field</div>
+          </div>
+          <div class="glass-sm" style="margin-bottom:8px">
+            <div style="font-size:13px;font-weight:600;color:rgba(255,255,255,0.85);margin-bottom:3px">onChange <span class="badge badge-gray" style="margin-left:6px">opt-in</span></div>
+            <div style="font-size:12px;color:rgba(255,255,255,0.45)">Validates on every keystroke</div>
+          </div>
+          <div class="glass-sm">
+            <div style="font-size:13px;font-weight:600;color:rgba(255,255,255,0.85);margin-bottom:3px">onSubmit <span class="badge badge-purple" style="margin-left:6px">always</span></div>
+            <div style="font-size:12px;color:rgba(255,255,255,0.45)">Full-form validation regardless of trigger setting</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="glass">
+      <div class="section-title">Open design questions</div>
+      <div class="risk-row">
+        <div class="risk-title"><span class="badge badge-amber" style="margin-right:8px">Q1</span>Hidden field value retention</div>
+        <div class="risk-mitigation">Should hidden field values be retained in state but excluded from payload, or wiped on hide? Leaning toward retain — easier to restore when a condition flips back.</div>
+      </div>
+      <div class="risk-row">
+        <div class="risk-title"><span class="badge badge-amber" style="margin-right:8px">Q2</span>Async validator submit behavior</div>
+        <div class="risk-mitigation">Should async custom validators block submission or only warn? Decision needed before Phase 2 ends.</div>
+      </div>
+      <div class="risk-row">
+        <div class="risk-title"><span class="badge badge-gray" style="margin-right:8px">Q3</span>Field groups as first-class schema concept</div>
+        <div class="risk-mitigation">Deferred to V2 unless adoption research shows it is a blocking gap.</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ======== TECH STACK ======== -->
+  <div id="tech" class="panel">
+
+    <div class="glass">
+      <div class="section-title">Tech Stack Document</div>
+      <div class="doc-title">Tools, libraries, infrastructure and decision rationale</div>
+      <p class="doc-body">Authoritative reference for every tool and library used in FormForge. Includes version pins, selection rationale, and current adoption status. Updated on every addition or removal.</p>
+      <div class="meta-row">
+        <span class="badge badge-purple">v1.0</span>
+        <span class="badge badge-gray">Engineering · internal</span>
+        <span class="badge badge-blue">June 2026</span>
+      </div>
+    </div>
+
+    <div class="glass">
+      <div class="section-title">Language and runtime</div>
+      <div class="stack-head"><span>Tool</span><span>Version</span><span>Rationale</span><span>Status</span></div>
+      <div class="stack-row">
+        <span class="stack-tool">TypeScript</span>
+        <span class="stack-ver">5.x</span>
+        <span class="stack-desc">Static typing eliminates whole classes of schema-parsing bugs; first-class IDE autocomplete for schema authoring</span>
+        <span class="status-confirmed">Confirmed</span>
+      </div>
+      <div class="stack-row">
+        <span class="stack-tool">Node.js</span>
+        <span class="stack-ver">20 LTS</span>
+        <span class="stack-desc">LTS stability for the backend validation package; matches common enterprise environments</span>
+        <span class="status-confirmed">Confirmed</span>
+      </div>
+    </div>
+
+    <div class="glass">
+      <div class="section-title">Frontend</div>
+      <div class="stack-head"><span>Tool</span><span>Version</span><span>Rationale</span><span>Status</span></div>
+      <div class="stack-row">
+        <span class="stack-tool">React</span>
+        <span class="stack-ver">18.x</span>
+        <span class="stack-desc">Dominant ecosystem; concurrent rendering aligns with FormForge's fine-grained update model</span>
+        <span class="status-confirmed">Confirmed</span>
+      </div>
+      <div class="stack-row">
+        <span class="stack-tool">Vite</span>
+        <span class="stack-ver">5.x</span>
+        <span class="stack-desc">Sub-second HMR for development; native ESM output for the library build</span>
+        <span class="status-confirmed">Confirmed</span>
+      </div>
+      <div class="stack-row">
+        <span class="stack-tool">CSS Custom Properties</span>
+        <span class="stack-ver">—</span>
+        <span class="stack-desc">Framework-agnostic theming with zero runtime cost — no CSS-in-JS dependency</span>
+        <span class="status-confirmed">Confirmed</span>
+      </div>
+    </div>
+
+    <div class="glass">
+      <div class="section-title">State management</div>
+      <div class="stack-head"><span>Tool</span><span>Version</span><span>Rationale</span><span>Status</span></div>
+      <div class="stack-row">
+        <span class="stack-tool">Zustand</span>
+        <span class="stack-ver">4.x</span>
+        <span class="stack-desc">Minimal footprint (~1 KB), no boilerplate, subscribe API works outside React tree for the framework-agnostic engine</span>
+        <span class="status-confirmed">Confirmed</span>
+      </div>
+      <div class="stack-row">
+        <span class="stack-tool">Immer</span>
+        <span class="stack-ver">10.x</span>
+        <span class="stack-desc">Immutable state updates with mutable syntax; pairs cleanly with Zustand's set pattern</span>
+        <span class="status-confirmed">Confirmed</span>
+      </div>
+    </div>
+
+    <div class="glass">
+      <div class="section-title">Validation</div>
+      <div class="stack-head"><span>Tool</span><span>Version</span><span>Rationale</span><span>Status</span></div>
+      <div class="stack-row">
+        <span class="stack-tool">Custom engine</span>
+        <span class="stack-ver">—</span>
+        <span class="stack-desc">No third-party dep for core rules keeps the bundle lean; fully tree-shakable</span>
+        <span class="status-confirmed">Confirmed</span>
+      </div>
+      <div class="stack-row">
+        <span class="stack-tool">Zod (optional)</span>
+        <span class="stack-ver">3.x</span>
+        <span class="stack-desc">Opt-in adapter for teams who prefer Zod schemas; not included in the core bundle</span>
+        <span class="status-eval">Evaluating</span>
+      </div>
+    </div>
+
+    <div class="glass">
+      <div class="section-title">Testing</div>
+      <div class="stack-head"><span>Tool</span><span>Version</span><span>Rationale</span><span>Status</span></div>
+      <div class="stack-row">
+        <span class="stack-tool">Vitest</span>
+        <span class="stack-ver">1.x</span>
+        <span class="stack-desc">Native Vite integration; Jest-compatible API; dramatically faster than Jest for TypeScript projects</span>
+        <span class="status-confirmed">Confirmed</span>
+      </div>
+      <div class="stack-row">
+        <span class="stack-tool">Testing Library</span>
+        <span class="stack-ver">14.x</span>
+        <span class="stack-desc">Behavior-driven assertions aligned with accessibility best practices</span>
+        <span class="status-confirmed">Confirmed</span>
+      </div>
+      <div class="stack-row">
+        <span class="stack-tool">Playwright</span>
+        <span class="stack-ver">1.x</span>
+        <span class="stack-desc">End-to-end form interaction tests across browsers; built-in accessibility assertions</span>
+        <span class="status-confirmed">Confirmed</span>
+      </div>
+      <div class="stack-row">
+        <span class="stack-tool">Storybook</span>
+        <span class="stack-ver">8.x</span>
+        <span class="stack-desc">Component isolation, visual regression baseline, and living documentation for field types</span>
+        <span class="status-confirmed">Confirmed</span>
+      </div>
+    </div>
+
+    <div class="glass">
+      <div class="section-title">Build and tooling</div>
+      <div class="stack-head"><span>Tool</span><span>Version</span><span>Rationale</span><span>Status</span></div>
+      <div class="stack-row">
+        <span class="stack-tool">tsup</span>
+        <span class="stack-ver">8.x</span>
+        <span class="stack-desc">Zero-config TypeScript library bundler; outputs ESM + CJS + .d.ts in one command</span>
+        <span class="status-confirmed">Confirmed</span>
+      </div>
+      <div class="stack-row">
+        <span class="stack-tool">Turborepo</span>
+        <span class="stack-ver">2.x</span>
+        <span class="stack-desc">Monorepo task orchestration with intelligent remote caching across packages</span>
+        <span class="status-confirmed">Confirmed</span>
+      </div>
+      <div class="stack-row">
+        <span class="stack-tool">Changesets</span>
+        <span class="stack-ver">2.x</span>
+        <span class="stack-desc">Versioning and CHANGELOG generation for monorepo packages; integrates with GitHub Actions</span>
+        <span class="status-confirmed">Confirmed</span>
+      </div>
+      <div class="stack-row">
+        <span class="stack-tool">ESLint + Prettier</span>
+        <span class="stack-ver">9.x / 3.x</span>
+        <span class="stack-desc">Flat ESLint config with custom rules for schema patterns; Prettier enforced in CI</span>
+        <span class="status-confirmed">Confirmed</span>
+      </div>
+    </div>
+
+    <div class="glass">
+      <div class="section-title">Architecture decision log</div>
+
+      <div class="adr-card">
+        <div class="adr-num">ADR-01</div>
+        <div class="adr-decision">Zustand over Redux for state management</div>
+        <div class="adr-alts">Alternatives considered: Redux Toolkit · Jotai · Valtio</div>
+        <div class="adr-outcome">Redux is overkill for a library. Zustand's subscribe API works outside React, which the engine needs for framework-agnostic operation. Footprint is ~1 KB vs ~10 KB for RTK.</div>
+      </div>
+      <div class="adr-card">
+        <div class="adr-num">ADR-02</div>
+        <div class="adr-decision">Custom validation engine, not Yup or Zod as core</div>
+        <div class="adr-alts">Alternatives considered: Yup · Zod · Valibot</div>
+        <div class="adr-outcome">Keeps the core bundle small and dependency-free. Zod is available as an opt-in adapter. Yup was rejected due to its mutation semantics conflicting with Immer.</div>
+      </div>
+      <div class="adr-card">
+        <div class="adr-num">ADR-03</div>
+        <div class="adr-decision">tsup over raw Rollup for library bundling</div>
+        <div class="adr-alts">Alternatives considered: Rollup · esbuild-only · webpack</div>
+        <div class="adr-outcome">tsup wraps esbuild with automatic .d.ts emission and handles ESM/CJS dual output with zero configuration. Saves several hundred lines of Rollup config.</div>
+      </div>
+      <div class="adr-card">
+        <div class="adr-num">ADR-04</div>
+        <div class="adr-decision">TypeScript-first, no plain JS source</div>
+        <div class="adr-alts">Alternatives considered: Flow · JSDoc on JavaScript</div>
+        <div class="adr-outcome">TypeScript types are the schema's canonical interface. Teams rely on IDE autocomplete to discover valid field properties — this only works well with TypeScript source.</div>
+      </div>
+      <div class="adr-card">
+        <div class="adr-num">ADR-05</div>
+        <div class="adr-decision">Turborepo over Nx for monorepo orchestration</div>
+        <div class="adr-alts">Alternatives considered: Nx · Lerna · pnpm workspaces only</div>
+        <div class="adr-outcome">Turborepo's caching model is simpler to configure for this repo's shape. Nx adds generator overhead not needed at FormForge's current scale.</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+function show(id, btn) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+}
+</script>
