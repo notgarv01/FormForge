@@ -23,7 +23,7 @@ class NotificationQueue {
         secure: true,
         auth: {
           user: "resend",
-          pass: "re_KfFhJcxX_3YvfnLuNYp6AyLjLPuS2xs51"
+          pass: process.env.RESEND_API_KEY
         }
       });
     } else {
@@ -32,8 +32,8 @@ class NotificationQueue {
         host: "sandbox.smtp.mailtrap.io",
         port: 2525,
         auth: {
-          user: "6975f796c4c507",
-          pass: "****7e37" // Note: Replace **** with your actual Mailtrap password if it is masked
+          user: process.env.MAILTRAP_USER,
+          pass: process.env.MAILTRAP_PASS
         }
       });
     }

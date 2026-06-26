@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 
-const MONGODB_URI = 'mongodb+srv://garvgupta6778_db_user:fXMcVYqe2NjRskIm@cluster0.dzqrios.mongodb.net/formforge?retryWrites=true&w=majority';
+const MONGODB_URI = process.env.MONGODB_URI;
 
 mongoose.connect(MONGODB_URI)
   .then(() => console.log('Successfully connected to MongoDB Atlas.'))

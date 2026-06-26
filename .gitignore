@@ -4,3 +4,4 @@ backend/mail.log
 .gemini/
 .DS_Store
 *.log
+.env
