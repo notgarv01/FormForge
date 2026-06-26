@@ -3,8 +3,11 @@ import mongoose from 'mongoose';
 const MONGODB_URI = process.env.MONGODB_URI;
 
 mongoose.connect(MONGODB_URI)
-  .then(() => console.log('Successfully connected to MongoDB Atlas.'))
-  .catch(err => console.error('MongoDB Atlas connection error:', err));
+  .then(() => console.log('[MongoDB] Successfully connected to MongoDB Atlas — submissions will be stored.'))
+  .catch(err => console.error('[MongoDB] Atlas connection error — submissions will FAIL:', err.message));
+
+mongoose.connection.on('disconnected', () => console.warn('[MongoDB] Disconnected.'));
+mongoose.connection.on('reconnected', () => console.log('[MongoDB] Reconnected.'));
 
 // Common conversion options to map _id to id when returned to front-end
 const schemaOptions = {

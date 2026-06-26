@@ -13,11 +13,11 @@ class NotificationQueue {
     this.processing = false;
     
     // Configurable SMTP Settings
-    const smtpHost = process.env.SMTP_HOST || "sandbox.smtp.mailtrap.io";
-    const smtpPort = parseInt(process.env.SMTP_PORT || "2525");
-    const smtpSecure = process.env.SMTP_SECURE === 'true'; // Set to true for port 465, false for 587 or 2525
-    const smtpUser = process.env.SMTP_USER || process.env.MAILTRAP_USER || "6975f796c4c507";
-    const smtpPass = process.env.SMTP_PASS || process.env.MAILTRAP_PASS || "****7e37";
+    const smtpHost = process.env.SMTP_HOST;
+    const smtpPort = parseInt(process.env.SMTP_PORT || "587");
+    const smtpSecure = process.env.SMTP_SECURE === 'true';
+    const smtpUser = process.env.SMTP_USER;
+    const smtpPass = process.env.SMTP_PASS;
     
     this.fromEmail = process.env.SMTP_FROM || '"FormForge System" <noreply@formforge.com>';
 

@@ -269,9 +269,15 @@ app.get('/api/forms/:formId/submissions', async (req, res) => {
   }
 });
 
-// Serve frontend assets
-const frontendPath = path.join(__dirname, '../frontend');
+// Serve React frontend assets
+const frontendPath = path.join(__dirname, '../frontend-react/dist');
 app.use(express.static(frontendPath));
+app.get('*', (req, res, next) => {
+  if (req.path.startsWith('/api/') || req.path.startsWith('/f/')) {
+    return next();
+  }
+  res.sendFile(path.join(frontendPath, 'index.html'));
+});
 
 // Start backend
 app.listen(PORT, () => {
@@ -279,4 +285,9 @@ app.listen(PORT, () => {
   console.log(` FormForge (Headless Backend) server running on port: ${PORT}`);
   console.log(` Developer Admin Panel: http://localhost:${PORT}`);
   console.log(`==================================================`);
+
+  // Non-fatal startup healthchecks so demo failures are obvious in console
+  queue.transporter.verify()
+    .then(() => console.log('[SMTP] Connection verified — real mail will send.'))
+    .catch((err) => console.warn('[SMTP] Verify failed (mail will NOT send):', err.message));
 });

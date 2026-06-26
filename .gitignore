@@ -1,4 +1,5 @@
 node_modules/
+frontend-react/dist/
 backend/db.json
 backend/mail.log
 .gemini/
