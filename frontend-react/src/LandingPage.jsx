@@ -13,7 +13,9 @@ import {
   Check,
   Sparkles,
   Terminal,
-  ArrowRight
+  ArrowRight,
+  Menu,
+  X
 } from 'lucide-react';
 
 export default function LandingPage({ onLaunchConsole }) {
@@ -24,6 +26,7 @@ export default function LandingPage({ onLaunchConsole }) {
   const [simSubmitting, setSimSubmitting] = useState(false);
   const [simSubmitted, setSimSubmitted] = useState(false);
   const [activeTab, setActiveTab] = useState('payload'); // 'payload' | 'response'
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // HTML Code Snippet state
   const [copiedCode, setCopiedCode] = useState(false);
@@ -87,8 +90,27 @@ export default function LandingPage({ onLaunchConsole }) {
           <button className="btn btn-primary nav-cta" onClick={onLaunchConsole}>
             Launch Console <ArrowRight size={14} />
           </button>
+
+          <button className="mobile-menu-toggle" onClick={() => setMobileMenuOpen(!mobileMenuOpen)} aria-label="Toggle menu">
+            {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+          </button>
         </div>
       </nav>
+
+      {/* Mobile Navigation Drawer */}
+      {mobileMenuOpen && (
+        <div className="mobile-nav-overlay" onClick={() => setMobileMenuOpen(false)}>
+          <div className="mobile-nav-menu" onClick={(e) => e.stopPropagation()}>
+            <a href="#features" onClick={() => setMobileMenuOpen(false)}>Features</a>
+            <a href="#how-it-works" onClick={() => setMobileMenuOpen(false)}>How It Works</a>
+            <a href="#docs" onClick={() => setMobileMenuOpen(false)}>HTML Snippet</a>
+            <a href="#creator" onClick={() => setMobileMenuOpen(false)}>Creator</a>
+            <button className="btn btn-primary nav-cta" onClick={() => { setMobileMenuOpen(false); onLaunchConsole(); }}>
+              Launch Console <ArrowRight size={14} />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Hero Section */}
       <header className="hero-section">

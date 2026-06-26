@@ -349,6 +349,7 @@ button:disabled {
 .empty-state,
 .form-card {
   padding: 22px;
+  min-width: 0; /* Prevent flex/grid children from expanding horizontally */
 }
 
 .metric-label,
@@ -462,6 +463,7 @@ pre {
   display: flex;
   flex-direction: column;
   gap: 20px;
+  min-width: 0; /* Prevent grid items from expanding horizontally */
 }
 
 .endpoint-row {
@@ -649,6 +651,7 @@ td em {
   .endpoint-row {
     align-items: stretch;
     flex-direction: column;
+    gap: 16px;
   }
 
   .metrics-grid,
@@ -659,19 +662,41 @@ td em {
 
   .session {
     justify-content: space-between;
+    align-items: center;
+    gap: 12px;
   }
 
   .session-email {
     max-width: none;
   }
 
-  .btn {
+  /* Target specific form action buttons to stretch, rather than globally stretching all utility/copy/link buttons */
+  .stacked-form .btn,
+  .modal-actions .btn,
+  .auth-card .btn:not(.btn-link) {
     width: 100%;
+  }
+
+  .btn-copy {
+    width: auto !important;
+  }
+
+  .details-header .btn {
+    width: fit-content;
+  }
+
+  .session .btn {
+    width: auto;
   }
 
   .modal-actions,
   .actions {
     flex-direction: column;
+    width: 100%;
+  }
+
+  .actions .btn {
+    width: 100%;
   }
 }
 
@@ -1344,6 +1369,75 @@ td em {
   font-weight: 500;
 }
 
+/* ---------- Hamburger Menu and Mobile Navigation Overlay ---------- */
+.mobile-menu-toggle {
+  display: none;
+  background: transparent;
+  border: 0;
+  color: var(--text);
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 6px;
+  align-items: center;
+  justify-content: center;
+}
+
+.mobile-menu-toggle:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.mobile-nav-overlay {
+  position: fixed;
+  top: 70px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 99;
+  background: rgba(9, 10, 16, 0.95);
+  backdrop-filter: blur(20px);
+  display: flex;
+  flex-direction: column;
+  padding: 24px;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.mobile-nav-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  margin-top: 10px;
+}
+
+.mobile-nav-menu a {
+  color: var(--text-soft);
+  text-decoration: none;
+  font-size: 1.1rem;
+  font-weight: 600;
+  padding: 14px 18px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border);
+  transition: all 0.2s;
+  text-align: center;
+}
+
+.mobile-nav-menu a:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.06);
+  border-color: var(--border-strong);
+}
+
+.mobile-nav-menu .nav-cta {
+  margin-top: 10px;
+  width: 100%;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 /* ---------- Responsive Breakpoints for Landing Page ---------- */
 @media (max-width: 980px) {
   .hero-section {
@@ -1359,10 +1453,6 @@ td em {
 
   .hero-description {
     max-width: 600px;
-  }
-
-  .landing-nav .btn {
-    display: none;
   }
 
   .features-grid {
@@ -1393,13 +1483,21 @@ td em {
   }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 768px) {
   .nav-links {
     display: none;
   }
 
-  .features-grid {
-    grid-template-columns: 1fr;
+  .mobile-menu-toggle {
+    display: flex;
+  }
+
+  .simulator-container {
+    transform: none !important;
+  }
+
+  .simulator-container:hover {
+    transform: none !important;
   }
 
   .simulator-body {
@@ -1415,8 +1513,32 @@ td em {
   .simulator-terminal-side {
     min-height: 250px;
   }
+}
+
+@media (max-width: 640px) {
+  .features-grid {
+    grid-template-columns: 1fr;
+  }
 
   .creator-card {
     padding: 24px;
+  }
+
+  .hero-actions,
+  .creator-socials {
+    flex-direction: column;
+    width: 100%;
+    gap: 12px;
+  }
+
+  .hero-actions .btn,
+  .creator-socials .btn {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .landing-nav .nav-cta {
+    display: none; /* Hide topbar CTA on small screens, users use hamburger menu */
   }
 }
