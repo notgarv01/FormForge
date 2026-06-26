@@ -19,6 +19,14 @@ import {
   Wrench
 } from 'lucide-react';
 import { API_BASE_URL, FormForgeAPI } from './api.js';
+import {
+  auth,
+  googleProvider,
+  signInWithPopup,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signOut
+} from './firebase.js';
 import { exportSubmissionsToCSV, exportSubmissionsToJSON } from './exporter.js';
 import './styles.css';
 
@@ -100,23 +108,35 @@ function AuthPanel({ onAuth, showToast }) {
   const [submitting, setSubmitting] = useState(false);
   const isLogin = mode === 'login';
 
+  async function signInWithGoogle() {
+    setSubmitting(true);
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+      onAuth(formatFirebaseUser(result.user));
+      showToast('success', `Welcome, ${result.user.displayName || result.user.email}.`);
+    } catch (error) {
+      showToast('error', humanizeAuthError(error));
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   async function handleSubmit(event) {
     event.preventDefault();
     setSubmitting(true);
 
     try {
+      let credential;
       if (isLogin) {
-        const user = await FormForgeAPI.login(email.trim(), password);
+        credential = await signInWithEmailAndPassword(auth, email.trim(), password);
         showToast('success', 'Logged in successfully.');
-        onAuth(user);
       } else {
-        await FormForgeAPI.register(email.trim(), password);
-        showToast('success', 'Registration successful. You can now log in.');
-        setMode('login');
-        setPassword('');
+        credential = await createUserWithEmailAndPassword(auth, email.trim(), password);
+        showToast('success', 'Account created. You are now signed in.');
       }
+      onAuth(formatFirebaseUser(credential.user));
     } catch (error) {
-      showToast('error', error.message);
+      showToast('error', humanizeAuthError(error));
     } finally {
       setSubmitting(false);
     }
@@ -137,6 +157,13 @@ function AuthPanel({ onAuth, showToast }) {
           {isLogin ? 'Login to configure form endpoints and read submissions.' : 'Register to build endpoints and connect headless forms.'}
         </p>
 
+        <button className="btn btn-google" type="button" onClick={signInWithGoogle} disabled={submitting}>
+          <span className="google-g" aria-hidden="true">G</span>
+          Continue with Google
+        </button>
+
+        <div className="auth-divider"><span>or</span></div>
+
         <form className="stacked-form" onSubmit={handleSubmit}>
           <label className="form-field">
             <span>Email Address</span>
@@ -144,10 +171,10 @@ function AuthPanel({ onAuth, showToast }) {
           </label>
           <label className="form-field">
             <span>Password</span>
-            <input className="input" type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Enter password" required />
+            <input className="input" type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Enter password" required minLength={6} />
           </label>
           <button className="btn btn-primary" type="submit" disabled={submitting}>
-            {submitting ? 'Working...' : isLogin ? 'Login' : 'Sign Up'}
+            {submitting ? 'Working...' : isLogin ? 'Login with Email' : 'Sign Up with Email'}
           </button>
         </form>
 
@@ -160,6 +187,30 @@ function AuthPanel({ onAuth, showToast }) {
   );
 }
 
+function formatFirebaseUser(user) {
+  return {
+    uid: user.uid,
+    email: user.email,
+    displayName: user.displayName || ''
+  };
+}
+
+function humanizeAuthError(error) {
+  const code = error?.code || '';
+  const map = {
+    'auth/invalid-email': 'That email address looks invalid.',
+    'auth/user-not-found': 'No account found with that email.',
+    'auth/wrong-password': 'Incorrect password. Please try again.',
+    'auth/invalid-credential': 'Incorrect email or password.',
+    'auth/email-already-in-use': 'An account with this email already exists.',
+    'auth/weak-password': 'Password should be at least 6 characters.',
+    'auth/popup-closed-by-user': 'Google sign-in was cancelled.',
+    'auth/popup-blocked': 'Popup was blocked by your browser. Allow popups and try again.',
+    'auth/network-request-failed': 'Network error. Check your connection.'
+  };
+  return map[code] || error.message || 'Authentication failed.';
+}
+
 function Dashboard({ user, onLogout, onSelectForm, showToast }) {
   const [forms, setForms] = useState([]);
   const [submissionCount, setSubmissionCount] = useState(0);
@@ -170,15 +221,14 @@ function Dashboard({ user, onLogout, onSelectForm, showToast }) {
   async function refresh() {
     setLoading(true);
     try {
-      const nextForms = await FormForgeAPI.getForms(user.id);
+      const nextForms = await FormForgeAPI.getForms();
       setForms(nextForms);
-      // Render cards immediately, fetch submission counts in background
       try {
-        const counts = await Promise.all(nextForms.map((form) => FormForgeAPI.getSubmissions(user.id, form.id).then((items) => items.length).catch(() => 0)));
+        const counts = await Promise.all(nextForms.map((form) => FormForgeAPI.getSubmissions(form.id).then((items) => items.length).catch(() => 0)));
         setForms((current) => current.map((f, i) => ({ ...f, _count: counts[i] || 0 })));
         setSubmissionCount(counts.reduce((total, count) => total + count, 0));
       } catch {
-        // counts are non-critical; leave existing value on screen
+        // counts are non-critical
       }
     } catch (error) {
       showToast('error', `Failed to load dashboard: ${error.message}`);
@@ -189,7 +239,7 @@ function Dashboard({ user, onLogout, onSelectForm, showToast }) {
 
   useEffect(() => {
     refresh();
-  }, [user.id]);
+  }, [user.uid]);
 
   async function deleteForm(form, event) {
     event.stopPropagation();
@@ -208,10 +258,9 @@ function Dashboard({ user, onLogout, onSelectForm, showToast }) {
     setSubmissionCount(Math.max(0, submissionCount - (form._count || 0)));
 
     try {
-      await FormForgeAPI.deleteForm(user.id, form.id);
+      await FormForgeAPI.deleteForm(form.id);
       showToast('success', `Form "${form.name}" deleted.`);
-      // Re-sync counts silently in the background (no loading flash)
-      FormForgeAPI.getSubmissions(user.id, form.id).catch(() => []);
+      FormForgeAPI.getSubmissions(form.id).catch(() => []);
     } catch (error) {
       // Roll back if the server rejected the delete
       setForms(previousForms);
@@ -230,7 +279,7 @@ function Dashboard({ user, onLogout, onSelectForm, showToast }) {
       <header className="topbar">
         <Logo />
         <div className="session">
-          <span className="session-email">{user.email}</span>
+          <span className="session-email">{user.displayName || user.email}</span>
           <button className="btn btn-secondary btn-compact" type="button" onClick={onLogout}><LogOut size={16} />Logout</button>
         </div>
       </header>
@@ -303,7 +352,7 @@ function CreateFormModal({ user, onClose, onCreated, showToast }) {
     setSubmitting(true);
 
     try {
-      await FormForgeAPI.createForm(user.id, name.trim(), customRedirect.trim(), notifyEmail.trim());
+      await FormForgeAPI.createForm(name.trim(), customRedirect.trim(), notifyEmail.trim());
       showToast('success', `Form "${name.trim()}" created successfully.`);
       onClose();
       await onCreated();
@@ -369,14 +418,14 @@ function FormDetails({ user, formId, onBack, showToast }) {
 
   async function load() {
     try {
-      const forms = await FormForgeAPI.getForms(user.id);
+      const forms = await FormForgeAPI.getForms();
       const selected = forms.find((item) => item.id === formId);
       if (!selected) throw new Error('Form configuration not found.');
 
       setForm(selected);
       setCustomRedirect(selected.customRedirect || '');
       setNotifyEmail(selected.notifyEmail || '');
-      const nextSubmissions = await FormForgeAPI.getSubmissions(user.id, selected.id);
+      const nextSubmissions = await FormForgeAPI.getSubmissions(selected.id);
       setSubmissions(nextSubmissions);
     } catch (error) {
       showToast('error', error.message);
@@ -386,7 +435,7 @@ function FormDetails({ user, formId, onBack, showToast }) {
 
   useEffect(() => {
     load();
-  }, [formId, user.id]);
+  }, [formId, user.uid]);
 
   async function copy(text, label) {
     try {
@@ -403,7 +452,7 @@ function FormDetails({ user, formId, onBack, showToast }) {
     setSaving(true);
 
     try {
-      const updated = await FormForgeAPI.updateForm(user.id, form.id, customRedirect.trim(), notifyEmail.trim());
+      const updated = await FormForgeAPI.updateForm(form.id, customRedirect.trim(), notifyEmail.trim());
       setForm(updated);
       showToast('success', 'Endpoint configuration updated.');
     } catch (error) {
@@ -521,14 +570,27 @@ function App() {
   const [selectedFormId, setSelectedFormId] = useState(null);
 
   useEffect(() => {
-    const session = localStorage.getItem(SESSION_KEY);
-    if (!session) return;
-
-    try {
-      setUser(JSON.parse(session));
-    } catch {
-      localStorage.removeItem(SESSION_KEY);
+    const stored = localStorage.getItem(SESSION_KEY);
+    if (stored) {
+      try {
+        setUser(JSON.parse(stored));
+      } catch {
+        localStorage.removeItem(SESSION_KEY);
+      }
     }
+
+    const unsubscribe = auth.onAuthStateChanged((firebaseUser) => {
+      if (firebaseUser) {
+        const session = formatFirebaseUser(firebaseUser);
+        setUser(session);
+        localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+      } else {
+        setUser(null);
+        localStorage.removeItem(SESSION_KEY);
+      }
+    });
+
+    return () => unsubscribe();
   }, []);
 
   function handleAuth(nextUser) {
@@ -536,7 +598,12 @@ function App() {
     localStorage.setItem(SESSION_KEY, JSON.stringify(nextUser));
   }
 
-  function logout() {
+  async function logout() {
+    try {
+      await signOut(auth);
+    } catch {
+      // Sign-out error handled by onAuthStateChanged listener clearing state
+    }
     setUser(null);
     setSelectedFormId(null);
     localStorage.removeItem(SESSION_KEY);

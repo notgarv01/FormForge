@@ -1,14 +1,26 @@
+import { auth } from './firebase.js';
+
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
 async function request(endpoint, options = {}) {
   const url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`;
-  const response = await fetch(url, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(options.headers || {})
+
+  const headers = {
+    'Content-Type': 'application/json',
+    ...(options.headers || {})
+  };
+
+  const currentUser = auth.currentUser;
+  if (currentUser) {
+    try {
+      const token = await currentUser.getIdToken();
+      headers.Authorization = `Bearer ${token}`;
+    } catch {
+      // Token retrieval failed; request will be rejected as unauthenticated
     }
-  });
+  }
+
+  const response = await fetch(url, { ...options, headers });
 
   const contentType = response.headers.get('content-type') || '';
   const data = contentType.includes('application/json') ? await response.json() : await response.text();
@@ -22,45 +34,31 @@ async function request(endpoint, options = {}) {
 }
 
 export const FormForgeAPI = {
-  register(email, password) {
-    return request('/api/auth/register', {
-      method: 'POST',
-      body: JSON.stringify({ email, password })
-    });
+  getForms() {
+    return request('/api/forms');
   },
 
-  login(email, password) {
-    return request('/api/auth/login', {
-      method: 'POST',
-      body: JSON.stringify({ email, password })
-    });
-  },
-
-  getForms(userId) {
-    return request(`/api/forms?userId=${encodeURIComponent(userId)}`);
-  },
-
-  createForm(userId, name, customRedirect, notifyEmail) {
+  createForm(name, customRedirect, notifyEmail) {
     return request('/api/forms', {
       method: 'POST',
-      body: JSON.stringify({ userId, name, customRedirect, notifyEmail })
+      body: JSON.stringify({ name, customRedirect, notifyEmail })
     });
   },
 
-  updateForm(userId, formId, customRedirect, notifyEmail) {
-    return request(`/api/forms/${encodeURIComponent(formId)}?userId=${encodeURIComponent(userId)}`, {
+  updateForm(formId, customRedirect, notifyEmail) {
+    return request(`/api/forms/${encodeURIComponent(formId)}`, {
       method: 'PUT',
       body: JSON.stringify({ customRedirect, notifyEmail })
     });
   },
 
-  deleteForm(userId, formId) {
-    return request(`/api/forms/${encodeURIComponent(formId)}?userId=${encodeURIComponent(userId)}`, {
+  deleteForm(formId) {
+    return request(`/api/forms/${encodeURIComponent(formId)}`, {
       method: 'DELETE'
     });
   },
 
-  getSubmissions(userId, formId) {
-    return request(`/api/forms/${encodeURIComponent(formId)}/submissions?userId=${encodeURIComponent(userId)}`);
+  getSubmissions(formId) {
+    return request(`/api/forms/${encodeURIComponent(formId)}/submissions`);
   }
 };

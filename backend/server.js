@@ -3,6 +3,7 @@ import express from 'express';
 import cors from 'cors';
 import { db } from './database.js';
 import { queue } from './queue.js';
+import { requireAuth } from './middleware/auth.js';
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -19,13 +20,13 @@ const ipRequests = new Map();
 const rateLimiter = (req, res, next) => {
   const ip = req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress;
   const now = Date.now();
-  
+
   if (!ipRequests.has(ip)) {
     ipRequests.set(ip, []);
   }
-  
+
   const requests = ipRequests.get(ip).filter(timestamp => now - timestamp < 60000);
-  
+
   if (requests.length >= 50) {
     return res.status(429).send(`
       <!DOCTYPE html>
@@ -51,21 +52,20 @@ const rateLimiter = (req, res, next) => {
       </html>
     `);
   }
-  
+
   requests.push(now);
   ipRequests.set(ip, requests);
   next();
 };
 
-// --- PUBLIC ROUTER: Incoming Form Subsubmissions ---
+// --- PUBLIC ROUTER: Incoming Form Submissions (no auth — must stay open for static sites) ---
 app.post('/f/:formId', rateLimiter, async (req, res) => {
   const { formId } = req.params;
   const payload = { ...req.body };
-  
+
   // 1. Spambot Honeypot Detection Check
   if (payload._honey && payload._honey.trim() !== '') {
     console.warn(`[Spam Guard] Honeybot detection triggered for form ID: ${formId}. Dropping submission silently.`);
-    // Return standard success response to confuse the spam bot without saving it
     return renderSuccessResponse(res, null, 'https://formforge.com');
   }
 
@@ -95,21 +95,15 @@ app.post('/f/:formId', rateLimiter, async (req, res) => {
       `);
     }
 
-    // Sanitize payload (strip honey fields)
     delete payload._honey;
 
-    // 2. Add submission to DB
     const submission = await db.addSubmission(formId, payload);
-
-    // 3. Queue email notifications Alert Job in background
     queue.addJob(form, submission);
 
-    // 4. Handles Redirect logic
     if (form.customRedirect && form.customRedirect.trim() !== '') {
       return res.redirect(form.customRedirect);
     }
 
-    // Default Success Screen
     return renderSuccessResponse(res, form, req.get('referrer'));
 
   } catch (err) {
@@ -156,70 +150,36 @@ function renderSuccessResponse(res, form, referrer) {
   `);
 }
 
-// --- DEVELOPER API ROUTERS ---
+// --- AUTHENTICATED API ROUTES ---
+// All /api/* routes require a valid Firebase ID token in Authorization: Bearer <token>
+// User identity comes from req.user.uid (Firebase UID), not from body/query.
 
-// 1. Authenticate Developer APIs
-app.post('/api/auth/register', async (req, res) => {
-  const { email, password } = req.body;
-  if (!email || !password) {
-    return res.status(400).json({ error: 'Please enter all fields.' });
+app.post('/api/forms', requireAuth, async (req, res) => {
+  const { name, customRedirect, notifyEmail } = req.body;
+  if (!name) {
+    return res.status(400).json({ error: 'Form name is required.' });
   }
   try {
-    const user = await db.createUser(email, password);
-    res.status(201).json(user);
-  } catch (err) {
-    res.status(400).json({ error: err.message });
-  }
-});
-
-app.post('/api/auth/login', async (req, res) => {
-  const { email, password } = req.body;
-  if (!email || !password) {
-    return res.status(400).json({ error: 'Please enter all fields.' });
-  }
-  try {
-    const user = await db.authenticateUser(email, password);
-    res.json(user);
-  } catch (err) {
-    res.status(401).json({ error: err.message });
-  }
-});
-
-// 2. Forms Dashboard CRUD APIs
-app.post('/api/forms', async (req, res) => {
-  const { userId, name, customRedirect, notifyEmail } = req.body;
-  if (!userId || !name) {
-    return res.status(400).json({ error: 'User ID and form name are required.' });
-  }
-  try {
-    const newForm = await db.createForm(userId, name, customRedirect, notifyEmail);
+    const newForm = await db.createForm(req.user.uid, name, customRedirect || '', notifyEmail || '', req.user.email);
     res.status(201).json(newForm);
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
 });
 
-app.get('/api/forms', async (req, res) => {
-  const { userId } = req.query;
-  if (!userId) {
-    return res.status(400).json({ error: 'User ID is required.' });
-  }
+app.get('/api/forms', requireAuth, async (req, res) => {
   try {
-    const forms = await db.getForms(userId);
+    const forms = await db.getForms(req.user.uid);
     res.json(forms);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-app.delete('/api/forms/:formId', async (req, res) => {
+app.delete('/api/forms/:formId', requireAuth, async (req, res) => {
   const { formId } = req.params;
-  const { userId } = req.query;
-  if (!userId) {
-    return res.status(400).json({ error: 'User ID is required.' });
-  }
   try {
-    const deleted = await db.deleteForm(userId, formId);
+    const deleted = await db.deleteForm(req.user.uid, formId);
     if (deleted) {
       res.json({ success: true, message: 'Form deleted successfully.' });
     } else {
@@ -230,33 +190,23 @@ app.delete('/api/forms/:formId', async (req, res) => {
   }
 });
 
-app.put('/api/forms/:formId', async (req, res) => {
+app.put('/api/forms/:formId', requireAuth, async (req, res) => {
   const { formId } = req.params;
-  const { userId } = req.query;
   const { customRedirect, notifyEmail } = req.body;
-  if (!userId) {
-    return res.status(400).json({ error: 'User ID is required.' });
-  }
   try {
-    const updated = await db.updateForm(userId, formId, customRedirect, notifyEmail);
+    const updated = await db.updateForm(req.user.uid, formId, customRedirect, notifyEmail);
     res.json(updated);
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
 });
 
-// 3. Submissions API
-app.get('/api/forms/:formId/submissions', async (req, res) => {
+app.get('/api/forms/:formId/submissions', requireAuth, async (req, res) => {
   const { formId } = req.params;
-  const { userId } = req.query;
-  if (!userId) {
-    return res.status(400).json({ error: 'User ID is required.' });
-  }
-  
+
   try {
-    // Verify access authorization
     const form = await db.getForm(formId);
-    if (!form || form.userId !== userId) {
+    if (!form || form.userId !== req.user.uid) {
       return res.status(403).json({ error: 'Access unauthorized.' });
     }
 
@@ -271,10 +221,8 @@ app.get('/api/forms/:formId/submissions', async (req, res) => {
 app.listen(PORT, () => {
   console.log(`==================================================`);
   console.log(` FormForge (Headless Backend) server running on port: ${PORT}`);
-  console.log(` Developer Admin Panel: http://localhost:${PORT}`);
   console.log(`==================================================`);
 
-  // Non-fatal startup healthchecks so demo failures are obvious in console
   queue.transporter.verify()
     .then(() => console.log('[SMTP] Connection verified — real mail will send.'))
     .catch((err) => console.warn('[SMTP] Verify failed (mail will NOT send):', err.message));

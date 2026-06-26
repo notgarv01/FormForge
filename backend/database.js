@@ -32,13 +32,7 @@ const schemaOptions = {
 };
 
 // --- SCHEMAS & MODELS ---
-
-const UserSchema = new mongoose.Schema({
-  _id: { type: String, default: () => 'usr_' + Math.random().toString(36).substr(2, 9) },
-  email: { type: String, required: true, unique: true, lowercase: true, trim: true },
-  password: { type: String, required: true },
-  createdAt: { type: Date, default: Date.now }
-}, schemaOptions);
+// userId is now a Firebase UID (string), not a custom random ID.
 
 const FormSchema = new mongoose.Schema({
   _id: { type: String, default: () => 'frm_' + Math.random().toString(36).substr(2, 9) },
@@ -56,42 +50,13 @@ const SubmissionSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 }, schemaOptions);
 
-const User = mongoose.model('User', UserSchema);
 const Form = mongoose.model('Form', FormSchema);
 const Submission = mongoose.model('Submission', SubmissionSchema);
 
 class FormForgeDatabase {
-  // --- USER API ---
-  async createUser(email, password) {
-    const existing = await User.findOne({ email: email.toLowerCase() });
-    if (existing) {
-      throw new Error('An account with this email already exists.');
-    }
-
-    const newUser = new User({
-      email: email,
-      password: password
-    });
-
-    await newUser.save();
-    return newUser.toJSON();
-  }
-
-  async authenticateUser(email, password) {
-    const user = await User.findOne({ email: email.toLowerCase() });
-    if (!user || user.password !== password) {
-      throw new Error('Invalid email or password.');
-    }
-    return user.toJSON();
-  }
-
   // --- FORMS API ---
-  async createForm(userId, name, customRedirect = '', notifyEmail = '') {
-    let finalNotifyEmail = notifyEmail;
-    if (!finalNotifyEmail) {
-      const user = await User.findById(userId);
-      finalNotifyEmail = user ? user.email : '';
-    }
+  async createForm(userId, name, customRedirect = '', notifyEmail = '', fallbackEmail = '') {
+    const finalNotifyEmail = notifyEmail || fallbackEmail || '';
 
     const newForm = new Form({
       userId: userId,
@@ -128,7 +93,6 @@ class FormForgeDatabase {
   async deleteForm(userId, formId) {
     const result = await Form.deleteOne({ _id: formId, userId: userId });
     if (result.deletedCount > 0) {
-      // Also delete related submissions
       await Submission.deleteMany({ formId: formId });
       return true;
     }
