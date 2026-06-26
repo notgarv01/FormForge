@@ -1,5 +1,6 @@
 import { FormForgeAPI } from '../api.js';
 import { FormForgeExporter } from './exporter.js';
+import { CONFIG } from '../config.js';
 
 export class FormForgeFormDetails {
   constructor(panelEl, toast, onBack) {
@@ -72,7 +73,9 @@ export class FormForgeFormDetails {
       // Update Form Titles and Settings fields
       this.formNameTitle.textContent = this.form.name;
       
-      const endpoint = `${window.location.origin}/f/${this.form.id}`;
+      const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      const base = isLocal ? window.location.origin : (CONFIG.BACKEND_URL || window.location.origin);
+      const endpoint = `${base}/f/${this.form.id}`;
       this.endpointInput.value = endpoint;
 
       this.settingsRedirect.value = this.form.customRedirect || '';

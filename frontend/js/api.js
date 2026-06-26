@@ -1,6 +1,15 @@
+import { CONFIG } from './config.js';
+
 export class FormForgeAPI {
   static async request(endpoint, options = {}) {
-    const url = endpoint.startsWith('http') ? endpoint : `${window.location.origin}${endpoint}`;
+    let url;
+    if (endpoint.startsWith('http')) {
+      url = endpoint;
+    } else {
+      const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      const base = isLocal ? window.location.origin : (CONFIG.BACKEND_URL || window.location.origin);
+      url = `${base}${endpoint}`;
+    }
     
     // Append standard headers
     const headers = {
