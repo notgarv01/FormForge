@@ -59,7 +59,7 @@ const rateLimiter = (req, res, next) => {
 };
 
 // --- PUBLIC ROUTER: Incoming Form Subsubmissions ---
-app.post('/f/:formId', rateLimiter, (req, res) => {
+app.post('/f/:formId', rateLimiter, async (req, res) => {
   const { formId } = req.params;
   const payload = { ...req.body };
   
@@ -71,7 +71,7 @@ app.post('/f/:formId', rateLimiter, (req, res) => {
   }
 
   try {
-    const form = db.getForm(formId);
+    const form = await db.getForm(formId);
     if (!form) {
       return res.status(404).send(`
         <!DOCTYPE html>
@@ -100,7 +100,7 @@ app.post('/f/:formId', rateLimiter, (req, res) => {
     delete payload._honey;
 
     // 2. Add submission to DB
-    const submission = db.addSubmission(formId, payload);
+    const submission = await db.addSubmission(formId, payload);
 
     // 3. Queue email notifications Alert Job in background
     queue.addJob(form, submission);
@@ -160,26 +160,26 @@ function renderSuccessResponse(res, form, referrer) {
 // --- DEVELOPER API ROUTERS ---
 
 // 1. Authenticate Developer APIs
-app.post('/api/auth/register', (req, res) => {
+app.post('/api/auth/register', async (req, res) => {
   const { email, password } = req.body;
   if (!email || !password) {
     return res.status(400).json({ error: 'Please enter all fields.' });
   }
   try {
-    const user = db.createUser(email, password);
+    const user = await db.createUser(email, password);
     res.status(201).json(user);
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
 });
 
-app.post('/api/auth/login', (req, res) => {
+app.post('/api/auth/login', async (req, res) => {
   const { email, password } = req.body;
   if (!email || !password) {
     return res.status(400).json({ error: 'Please enter all fields.' });
   }
   try {
-    const user = db.authenticateUser(email, password);
+    const user = await db.authenticateUser(email, password);
     res.json(user);
   } catch (err) {
     res.status(401).json({ error: err.message });
@@ -187,39 +187,51 @@ app.post('/api/auth/login', (req, res) => {
 });
 
 // 2. Forms Dashboard CRUD APIs
-app.post('/api/forms', (req, res) => {
+app.post('/api/forms', async (req, res) => {
   const { userId, name, customRedirect, notifyEmail } = req.body;
   if (!userId || !name) {
     return res.status(400).json({ error: 'User ID and form name are required.' });
   }
-  const newForm = db.createForm(userId, name, customRedirect, notifyEmail);
-  res.status(201).json(newForm);
+  try {
+    const newForm = await db.createForm(userId, name, customRedirect, notifyEmail);
+    res.status(201).json(newForm);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
 });
 
-app.get('/api/forms', (req, res) => {
+app.get('/api/forms', async (req, res) => {
   const { userId } = req.query;
   if (!userId) {
     return res.status(400).json({ error: 'User ID is required.' });
   }
-  const forms = db.getForms(userId);
-  res.json(forms);
+  try {
+    const forms = await db.getForms(userId);
+    res.json(forms);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-app.delete('/api/forms/:formId', (req, res) => {
+app.delete('/api/forms/:formId', async (req, res) => {
   const { formId } = req.params;
   const { userId } = req.query;
   if (!userId) {
     return res.status(400).json({ error: 'User ID is required.' });
   }
-  const deleted = db.deleteForm(userId, formId);
-  if (deleted) {
-    res.json({ success: true, message: 'Form deleted successfully.' });
-  } else {
-    res.status(404).json({ error: 'Form not found or unauthorized.' });
+  try {
+    const deleted = await db.deleteForm(userId, formId);
+    if (deleted) {
+      res.json({ success: true, message: 'Form deleted successfully.' });
+    } else {
+      res.status(404).json({ error: 'Form not found or unauthorized.' });
+    }
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
-app.put('/api/forms/:formId', (req, res) => {
+app.put('/api/forms/:formId', async (req, res) => {
   const { formId } = req.params;
   const { userId } = req.query;
   const { customRedirect, notifyEmail } = req.body;
@@ -227,7 +239,7 @@ app.put('/api/forms/:formId', (req, res) => {
     return res.status(400).json({ error: 'User ID is required.' });
   }
   try {
-    const updated = db.updateForm(userId, formId, customRedirect, notifyEmail);
+    const updated = await db.updateForm(userId, formId, customRedirect, notifyEmail);
     res.json(updated);
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -235,21 +247,25 @@ app.put('/api/forms/:formId', (req, res) => {
 });
 
 // 3. Submissions API
-app.get('/api/forms/:formId/submissions', (req, res) => {
+app.get('/api/forms/:formId/submissions', async (req, res) => {
   const { formId } = req.params;
   const { userId } = req.query;
   if (!userId) {
     return res.status(400).json({ error: 'User ID is required.' });
   }
   
-  // Verify access authorization
-  const form = db.getForm(formId);
-  if (!form || form.userId !== userId) {
-    return res.status(403).json({ error: 'Access unauthorized.' });
-  }
+  try {
+    // Verify access authorization
+    const form = await db.getForm(formId);
+    if (!form || form.userId !== userId) {
+      return res.status(403).json({ error: 'Access unauthorized.' });
+    }
 
-  const submissions = db.getSubmissions(formId);
-  res.json(submissions);
+    const submissions = await db.getSubmissions(formId);
+    res.json(submissions);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // Serve frontend assets

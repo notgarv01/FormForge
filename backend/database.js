@@ -1,143 +1,156 @@
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import mongoose from 'mongoose';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const DB_FILE = path.join(__dirname, 'db.json');
+const MONGODB_URI = 'mongodb+srv://garvgupta6778_db_user:fXMcVYqe2NjRskIm@cluster0.dzqrios.mongodb.net/formforge?retryWrites=true&w=majority';
+
+mongoose.connect(MONGODB_URI)
+  .then(() => console.log('Successfully connected to MongoDB Atlas.'))
+  .catch(err => console.error('MongoDB Atlas connection error:', err));
+
+// Common conversion options to map _id to id when returned to front-end
+const schemaOptions = {
+  toJSON: {
+    virtuals: true,
+    transform: (doc, ret) => {
+      ret.id = ret._id;
+      delete ret._id;
+      delete ret.__v;
+      return ret;
+    }
+  },
+  toObject: {
+    virtuals: true,
+    transform: (doc, ret) => {
+      ret.id = ret._id;
+      delete ret._id;
+      delete ret.__v;
+      return ret;
+    }
+  }
+};
+
+// --- SCHEMAS & MODELS ---
+
+const UserSchema = new mongoose.Schema({
+  _id: { type: String, default: () => 'usr_' + Math.random().toString(36).substr(2, 9) },
+  email: { type: String, required: true, unique: true, lowercase: true, trim: true },
+  password: { type: String, required: true },
+  createdAt: { type: Date, default: Date.now }
+}, schemaOptions);
+
+const FormSchema = new mongoose.Schema({
+  _id: { type: String, default: () => 'frm_' + Math.random().toString(36).substr(2, 9) },
+  userId: { type: String, required: true },
+  name: { type: String, required: true },
+  customRedirect: { type: String, default: '' },
+  notifyEmail: { type: String, default: '' },
+  createdAt: { type: Date, default: Date.now }
+}, schemaOptions);
+
+const SubmissionSchema = new mongoose.Schema({
+  _id: { type: String, default: () => 'sub_' + Math.random().toString(36).substr(2, 9) },
+  formId: { type: String, required: true },
+  payload: { type: mongoose.Schema.Types.Mixed, default: {} },
+  createdAt: { type: Date, default: Date.now }
+}, schemaOptions);
+
+const User = mongoose.model('User', UserSchema);
+const Form = mongoose.model('Form', FormSchema);
+const Submission = mongoose.model('Submission', SubmissionSchema);
 
 class FormForgeDatabase {
-  constructor() {
-    this.data = {
-      users: [],
-      forms: [],
-      submissions: []
-    };
-    this.init();
-  }
-
-  init() {
-    try {
-      if (fs.existsSync(DB_FILE)) {
-        const fileContent = fs.readFileSync(DB_FILE, 'utf8');
-        this.data = JSON.parse(fileContent);
-      } else {
-        this.save();
-      }
-    } catch (err) {
-      console.error('Failed to initialize FormForge database:', err);
-    }
-  }
-
-  save() {
-    try {
-      fs.writeFileSync(DB_FILE, JSON.stringify(this.data, null, 2), 'utf8');
-    } catch (err) {
-      console.error('Failed to save database file:', err);
-    }
-  }
-
   // --- USER API ---
-  createUser(email, password) {
-    const existing = this.data.users.find(u => u.email.toLowerCase() === email.toLowerCase());
+  async createUser(email, password) {
+    const existing = await User.findOne({ email: email.toLowerCase() });
     if (existing) {
       throw new Error('An account with this email already exists.');
     }
 
-    const newUser = {
-      id: 'usr_' + Math.random().toString(36).substr(2, 9),
+    const newUser = new User({
       email: email,
-      password: password, // In a real app, hash this, but simple text matches spec mock boundaries
-      createdAt: new Date().toISOString()
-    };
+      password: password
+    });
 
-    this.data.users.push(newUser);
-    this.save();
-    return { id: newUser.id, email: newUser.email };
+    await newUser.save();
+    return newUser.toJSON();
   }
 
-  authenticateUser(email, password) {
-    const user = this.data.users.find(
-      u => u.email.toLowerCase() === email.toLowerCase() && u.password === password
-    );
-    if (!user) {
+  async authenticateUser(email, password) {
+    const user = await User.findOne({ email: email.toLowerCase() });
+    if (!user || user.password !== password) {
       throw new Error('Invalid email or password.');
     }
-    return { id: user.id, email: user.email };
+    return user.toJSON();
   }
 
   // --- FORMS API ---
-  createForm(userId, name, customRedirect = '', notifyEmail = '') {
-    const formId = 'frm_' + Math.random().toString(36).substr(2, 9);
-    const newForm = {
-      id: formId,
+  async createForm(userId, name, customRedirect = '', notifyEmail = '') {
+    let finalNotifyEmail = notifyEmail;
+    if (!finalNotifyEmail) {
+      const user = await User.findById(userId);
+      finalNotifyEmail = user ? user.email : '';
+    }
+
+    const newForm = new Form({
       userId: userId,
       name: name,
       customRedirect: customRedirect,
-      notifyEmail: notifyEmail || this.data.users.find(u => u.id === userId)?.email || '',
-      createdAt: new Date().toISOString()
-    };
+      notifyEmail: finalNotifyEmail
+    });
 
-    this.data.forms.push(newForm);
-    this.save();
-    return newForm;
+    await newForm.save();
+    return newForm.toJSON();
   }
 
-  getForms(userId) {
-    return this.data.forms.filter(f => f.userId === userId);
+  async getForms(userId) {
+    const forms = await Form.find({ userId });
+    return forms.map(f => f.toJSON());
   }
 
-  getForm(formId) {
-    return this.data.forms.find(f => f.id === formId);
+  async getForm(formId) {
+    const form = await Form.findById(formId);
+    return form ? form.toJSON() : null;
   }
 
-  updateForm(userId, formId, customRedirect, notifyEmail) {
-    const form = this.data.forms.find(f => f.id === formId && f.userId === userId);
+  async updateForm(userId, formId, customRedirect, notifyEmail) {
+    const form = await Form.findOne({ _id: formId, userId: userId });
     if (!form) {
       throw new Error('Form not found or unauthorized.');
     }
     form.customRedirect = customRedirect;
     form.notifyEmail = notifyEmail;
-    this.save();
-    return form;
+    await form.save();
+    return form.toJSON();
   }
 
-  deleteForm(userId, formId) {
-    const initialLength = this.data.forms.length;
-    this.data.forms = this.data.forms.filter(f => !(f.id === formId && f.userId === userId));
-    
-    if (this.data.forms.length < initialLength) {
+  async deleteForm(userId, formId) {
+    const result = await Form.deleteOne({ _id: formId, userId: userId });
+    if (result.deletedCount > 0) {
       // Also delete related submissions
-      this.data.submissions = this.data.submissions.filter(s => s.formId !== formId);
-      this.save();
+      await Submission.deleteMany({ formId: formId });
       return true;
     }
     return false;
   }
 
   // --- SUBMISSIONS API ---
-  addSubmission(formId, payload) {
-    const form = this.getForm(formId);
+  async addSubmission(formId, payload) {
+    const form = await this.getForm(formId);
     if (!form) {
       throw new Error('Form not found.');
     }
 
-    const submission = {
-      id: 'sub_' + Math.random().toString(36).substr(2, 9),
+    const submission = new Submission({
       formId: formId,
-      payload: payload,
-      createdAt: new Date().toISOString()
-    };
+      payload: payload
+    });
 
-    this.data.submissions.push(submission);
-    this.save();
-    return submission;
+    await submission.save();
+    return submission.toJSON();
   }
 
-  getSubmissions(formId) {
-    return this.data.submissions
-      .filter(s => s.formId === formId)
-      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  async getSubmissions(formId) {
+    const submissions = await Submission.find({ formId }).sort({ createdAt: -1 });
+    return submissions.map(s => s.toJSON());
   }
 }
 
