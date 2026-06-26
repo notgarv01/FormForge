@@ -137,9 +137,15 @@ function Dashboard({ user, onLogout, onSelectForm, showToast }) {
     setLoading(true);
     try {
       const nextForms = await FormForgeAPI.getForms(user.id);
-      const counts = await Promise.all(nextForms.map((form) => FormForgeAPI.getSubmissions(user.id, form.id).then((items) => items.length).catch(() => 0)));
       setForms(nextForms);
-      setSubmissionCount(counts.reduce((total, count) => total + count, 0));
+      // Render cards immediately, fetch submission counts in background
+      try {
+        const counts = await Promise.all(nextForms.map((form) => FormForgeAPI.getSubmissions(user.id, form.id).then((items) => items.length).catch(() => 0)));
+        setForms((current) => current.map((f, i) => ({ ...f, _count: counts[i] || 0 })));
+        setSubmissionCount(counts.reduce((total, count) => total + count, 0));
+      } catch {
+        // counts are non-critical; leave existing value on screen
+      }
     } catch (error) {
       showToast('error', `Failed to load dashboard: ${error.message}`);
     } finally {
@@ -155,11 +161,21 @@ function Dashboard({ user, onLogout, onSelectForm, showToast }) {
     event.stopPropagation();
     if (!window.confirm(`Are you sure you want to delete the form "${form.name}"? This will permanently delete all stored submission logs.`)) return;
 
+    // Optimistic update — remove card instantly, no reload needed
+    const previousForms = forms;
+    const previousCount = submissionCount;
+    setForms((current) => current.filter((f) => f.id !== form.id));
+    setSubmissionCount(Math.max(0, submissionCount - (form._count || 0)));
+
     try {
       await FormForgeAPI.deleteForm(user.id, form.id);
       showToast('success', `Form "${form.name}" deleted.`);
-      await refresh();
+      // Re-sync counts silently in the background (no loading flash)
+      FormForgeAPI.getSubmissions(user.id, form.id).catch(() => []);
     } catch (error) {
+      // Roll back if the server rejected the delete
+      setForms(previousForms);
+      setSubmissionCount(previousCount);
       showToast('error', error.message);
     }
   }
