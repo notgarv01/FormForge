@@ -29,6 +29,7 @@ import {
 } from './firebase.js';
 import { exportSubmissionsToCSV, exportSubmissionsToJSON } from './exporter.js';
 import './styles.css';
+import LandingPage from './LandingPage.jsx';
 
 const SESSION_KEY = 'formforge_session';
 
@@ -101,7 +102,7 @@ function ConfirmDialog({ title, message, confirmLabel = 'Confirm', cancelLabel =
   );
 }
 
-function AuthPanel({ onAuth, showToast }) {
+function AuthPanel({ onAuth, showToast, onBack }) {
   const [mode, setMode] = useState('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -151,6 +152,11 @@ function AuthPanel({ onAuth, showToast }) {
   return (
     <main className="auth-panel">
       <section className="glass auth-card">
+        <div style={{ textAlign: 'left', marginBottom: '14px' }}>
+          <button className="btn btn-link btn-compact" type="button" onClick={onBack} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: 0 }}>
+            <ArrowLeft size={14} /> Back to Home
+          </button>
+        </div>
         <Logo label="FormForge Auth" />
         <h1>{isLogin ? 'Welcome Back' : 'Create Account'}</h1>
         <p className="subtitle">
@@ -573,6 +579,7 @@ function App() {
   const { toasts, showToast } = useToasts();
   const [user, setUser] = useState(null);
   const [selectedFormId, setSelectedFormId] = useState(null);
+  const [showAuth, setShowAuth] = useState(false);
 
   useEffect(() => {
     const stored = localStorage.getItem(SESSION_KEY);
@@ -611,6 +618,7 @@ function App() {
     }
     setUser(null);
     setSelectedFormId(null);
+    setShowAuth(false);
     localStorage.removeItem(SESSION_KEY);
     showToast('info', 'Logged out of FormForge Console.');
   }
@@ -623,7 +631,11 @@ function App() {
         <span className="grid-glow" />
       </div>
       {!user ? (
-        <AuthPanel onAuth={handleAuth} showToast={showToast} />
+        showAuth ? (
+          <AuthPanel onAuth={handleAuth} showToast={showToast} onBack={() => setShowAuth(false)} />
+        ) : (
+          <LandingPage onLaunchConsole={() => setShowAuth(true)} />
+        )
       ) : selectedFormId ? (
         <FormDetails user={user} formId={selectedFormId} onBack={() => setSelectedFormId(null)} showToast={showToast} />
       ) : (
