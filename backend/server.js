@@ -1,18 +1,16 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
-import path from 'path';
-import { fileURLToPath } from 'url';
 import { db } from './database.js';
 import { queue } from './queue.js';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 8080;
 
-app.use(cors());
+app.use(cors({
+  origin: process.env.CORS_ORIGIN || true,
+  credentials: false
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -267,23 +265,6 @@ app.get('/api/forms/:formId/submissions', async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
-});
-
-// Serve React frontend assets
-const frontendPath = path.join(__dirname, '../frontend-react/dist');
-app.use(express.static(frontendPath, {
-  setHeaders: (res) => {
-    // index.html must never be cached so deploys with new asset hashes are picked up
-    if (res.req.path === '/' || res.req.path.endsWith('.html')) {
-      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-    }
-  }
-}));
-app.get('*', (req, res, next) => {
-  if (req.path.startsWith('/api/') || req.path.startsWith('/f/')) {
-    return next();
-  }
-  res.sendFile(path.join(frontendPath, 'index.html'));
 });
 
 // Start backend
