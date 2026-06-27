@@ -17,6 +17,45 @@
 
 * {
   box-sizing: border-box;
+  scrollbar-width: thin;
+  scrollbar-color: var(--accent-two) rgba(0, 0, 0, 0.2);
+}
+
+/* Custom Scrollbars for WebKit Browsers (Chrome, Safari, Edge) */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, var(--accent) 0%, var(--accent-two) 100%);
+  border: 2.5px solid transparent;
+  border-radius: 999px;
+  background-clip: content-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, var(--accent-two) 0%, var(--accent) 100%);
+}
+
+/* Custom horizontal scrollbar thumb gradient direction */
+::-webkit-scrollbar-thumb:horizontal {
+  background: linear-gradient(90deg, var(--accent) 0%, var(--accent-two) 100%);
+  background-clip: content-box;
+}
+
+::-webkit-scrollbar-thumb:horizontal:hover {
+  background: linear-gradient(90deg, var(--accent-two) 0%, var(--accent) 100%);
+}
+
+/* Corner styles (when horizontal and vertical meet) */
+::-webkit-scrollbar-corner {
+  background: transparent;
 }
 
 body {
